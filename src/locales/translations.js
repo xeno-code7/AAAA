@@ -2,7 +2,7 @@ export const translations = {
     id: {
         // App
         appName: "BookletKu",
-        tagline: "Pembuat Menu Digital",
+        tagline: "Menu Digital",
 
         // Navigation
         dashboard: "Dasbor",
@@ -28,7 +28,7 @@ export const translations = {
         uploadPhoto: "Upload Foto",
 
         // Categories
-        allCategories: "Semua Kategori",
+        allCategories: "Semua",
         food: "Makanan",
         drink: "Minuman",
         snack: "Camilan",
@@ -36,7 +36,7 @@ export const translations = {
         other: "Lainnya",
 
         // Features
-        generateQR: "Generate QR Code",
+        generateQR: "QR Code",
         copyLink: "Salin Link",
         preview: "Pratinjau",
         orderViaWA: "Pesan via WhatsApp",
@@ -57,36 +57,55 @@ export const translations = {
         itemUpdated: "Item berhasil diperbarui!",
         itemDeleted: "Item berhasil dihapus!",
         confirmDelete: "Yakin ingin menghapus item ini?",
+        noResults: "Tidak ada hasil",
 
         // Settings
         storeName: "Nama Toko",
         whatsappNumber: "Nomor WhatsApp",
         storeSettings: "Pengaturan Toko",
 
-        // Order
+        // Order & Cart
         orderMessage: "Halo, saya ingin memesan:",
         totalPrice: "Total Harga",
         addToCart: "Tambah ke Keranjang",
         cart: "Keranjang",
         checkout: "Checkout",
         emptyCart: "Keranjang kosong",
+        clearCart: "Kosongkan Keranjang",
+        totalPayment: "Total Pembayaran",
+        orderDetails: "Detail Pesanan",
+        yourName: "Nama Anda",
+        tableNumber: "Nomor Meja",
+        additionalNotes: "Catatan Tambahan",
+        addNote: "Tambah catatan",
+
+        // Order Types
+        dineIn: "Makan di Tempat",
+        takeaway: "Bawa Pulang",
+        delivery: "Delivery",
+
+        // WhatsApp
+        newOrder: "PESANAN BARU",
+        orderDetail: "DETAIL PESANAN",
+        thankYou: "Terima kasih telah memesan!",
+        sentVia: "Pesan ini dikirim melalui BookletKu",
 
         // Search
         searchPlaceholder: "Cari menu...",
         searchResults: "Hasil Pencarian",
-        noResults: "Tidak ada hasil",
 
         // Misc
         loading: "Memuat...",
         error: "Terjadi kesalahan",
         retry: "Coba lagi",
         back: "Kembali",
+        item: "item",
     },
 
     en: {
         // App
         appName: "BookletKu",
-        tagline: "Digital Menu Maker",
+        tagline: "Digital Menu",
 
         // Navigation
         dashboard: "Dashboard",
@@ -112,7 +131,7 @@ export const translations = {
         uploadPhoto: "Upload Photo",
 
         // Categories
-        allCategories: "All Categories",
+        allCategories: "All",
         food: "Food",
         drink: "Drink",
         snack: "Snack",
@@ -120,7 +139,7 @@ export const translations = {
         other: "Other",
 
         // Features
-        generateQR: "Generate QR Code",
+        generateQR: "QR Code",
         copyLink: "Copy Link",
         preview: "Preview",
         orderViaWA: "Order via WhatsApp",
@@ -141,30 +160,49 @@ export const translations = {
         itemUpdated: "Item updated successfully!",
         itemDeleted: "Item deleted successfully!",
         confirmDelete: "Are you sure you want to delete this item?",
+        noResults: "No results found",
 
         // Settings
         storeName: "Store Name",
         whatsappNumber: "WhatsApp Number",
         storeSettings: "Store Settings",
 
-        // Order
+        // Order & Cart
         orderMessage: "Hello, I would like to order:",
         totalPrice: "Total Price",
         addToCart: "Add to Cart",
         cart: "Cart",
         checkout: "Checkout",
         emptyCart: "Cart is empty",
+        clearCart: "Clear Cart",
+        totalPayment: "Total Payment",
+        orderDetails: "Order Details",
+        yourName: "Your Name",
+        tableNumber: "Table Number",
+        additionalNotes: "Additional Notes",
+        addNote: "Add note",
+
+        // Order Types
+        dineIn: "Dine In",
+        takeaway: "Takeaway",
+        delivery: "Delivery",
+
+        // WhatsApp
+        newOrder: "NEW ORDER",
+        orderDetail: "ORDER DETAILS",
+        thankYou: "Thank you for ordering!",
+        sentVia: "Sent via BookletKu",
 
         // Search
         searchPlaceholder: "Search menu...",
         searchResults: "Search Results",
-        noResults: "No results found",
 
         // Misc
         loading: "Loading...",
         error: "An error occurred",
         retry: "Try again",
         back: "Back",
+        item: "item",
     },
 };
 
