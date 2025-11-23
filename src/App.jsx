@@ -1,14 +1,14 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 
 import { useAuth } from "./contexts/AuthContext";
-import { useSupabase } from "./hooks/useSupabase";
 
 // Pages
 import { PublicMenu } from "./components/PublicMenu";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { LoginPage } from "./components/LoginPage";
 import { UserProfile } from "./components/UserProfile";
+import { NotFound } from "./components/NotFound";
 
 // Protected Route for Admin
 function AdminRoute({ children }) {
@@ -22,13 +22,8 @@ function AdminRoute({ children }) {
         );
     }
 
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
-
-    if (!isAdmin) {
-        return <Navigate to="/" replace />;
-    }
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
+    if (!isAdmin) return <Navigate to="/" replace />;
 
     return children;
 }
@@ -45,22 +40,31 @@ function UserRoute({ children }) {
         );
     }
 
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
 
     return children;
+}
+
+// Redirect for /menu/:slug → /:slug
+function RedirectMenuSlug() {
+    const { slug } = useParams();
+    return <Navigate to={`/${slug}`} replace />;
 }
 
 function App() {
     return (
         <Routes>
-            {/* Public Routes */}
+            {/* Public Menu */}
             <Route path="/" element={<PublicMenu />} />
-            <Route path="/menu/:slug" element={<PublicMenu />} />
+
+            {/* Login */}
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Admin Routes */}
+            {/* Auto-redirect */}
+            <Route path="/menu" element={<Navigate to="/" replace />} />
+            <Route path="/menu/:slug" element={<Navigate to="/" replace />} />
+
+            {/* Admin */}
             <Route
                 path="/admin/*"
                 element={
@@ -70,7 +74,7 @@ function App() {
                 }
             />
 
-            {/* User Routes */}
+            {/* User Profile */}
             <Route
                 path="/profile"
                 element={
@@ -80,8 +84,8 @@ function App() {
                 }
             />
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* 404 Fallback */}
+            <Route path="*" element={<NotFound />} />
         </Routes>
     );
 }

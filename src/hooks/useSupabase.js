@@ -4,8 +4,8 @@ import { supabase, STORAGE_BUCKET, DEFAULT_STORE_ID } from "../config/supabase";
 export function useSupabase() {
     const [items, setItems] = useState([]);
     const [settings, setSettingsState] = useState({
-        storeName: "My Store",
-        whatsappNumber: "628123456789",
+        storeName: "Warung Makan Berkah",
+        whatsappNumber: "6285157680550",
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

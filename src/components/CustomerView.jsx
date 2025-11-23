@@ -197,10 +197,7 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
 
     const orderViaWhatsApp = () => {
         const message = generateWhatsAppMessage();
-        const phoneNumber = (settings.whatsappNumber || "").replace(
-            /[^0-9]/g,
-            ""
-        );
+        const phone = (settings.whatsappNumber || "").replace(/[^0-9]/g, "");
         const waUrl =
             "https://wa.me/" +
             phoneNumber +
