@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { MenuCardSimple } from "./MenuCard";
 import { useLanguage } from "../contexts/LanguageContext";
-import { encodeWA } from "../utils/waEncode";
 
 const CATEGORIES = ["all", "food", "drink", "snack", "dessert", "other"];
 
@@ -28,10 +27,9 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
     const [customerName, setCustomerName] = useState("");
     const [customerNote, setCustomerNote] = useState("");
     const [tableNumber, setTableNumber] = useState("");
-    const [orderType, setOrderType] = useState("dine-in"); // dine-in, takeaway, delivery
+    const [orderType, setOrderType] = useState("dine-in");
     const [showOrderForm, setShowOrderForm] = useState(false);
 
-    // Filter items
     const filteredItems = items
         .filter(
             (item) =>
@@ -42,10 +40,8 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
         )
         .sort((a, b) => a.order - b.order);
 
-    // Cart functions
     const addToCart = (item) => {
         onIncrementViews(item.id);
-
         setCart((prev) => {
             const existing = prev.find((c) => c.id === item.id);
             if (existing) {
@@ -58,8 +54,8 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
     };
 
     const updateQty = (id, delta) => {
-        setCart((prev) => {
-            return prev
+        setCart((prev) =>
+            prev
                 .map((item) => {
                     if (item.id === id) {
                         const newQty = item.qty + delta;
@@ -67,8 +63,8 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                     }
                     return item;
                 })
-                .filter((item) => item.qty > 0);
-        });
+                .filter((item) => item.qty > 0)
+        );
     };
 
     const updateItemNote = (id, note) => {
@@ -77,152 +73,144 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
         );
     };
 
-    const removeFromCart = (id) => {
+    const removeFromCart = (id) =>
         setCart((prev) => prev.filter((c) => c.id !== id));
-    };
-
     const clearCart = () => {
         setCart([]);
         setShowCart(false);
         setShowOrderForm(false);
     };
 
-    // Calculate totals
     const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
     const totalPrice = cart.reduce(
         (sum, item) => sum + item.price * item.qty,
         0
     );
 
-    // Format currency
-    const formatPrice = (price) => {
-        return new Intl.NumberFormat("id-ID").format(price);
-    };
+    const formatPrice = (price) => new Intl.NumberFormat("id-ID").format(price);
 
-    // Get current date & time
     const getDateTime = () => {
         const now = new Date();
-        const options = {
+        return now.toLocaleDateString(lang === "id" ? "id-ID" : "en-US", {
             weekday: "long",
             year: "numeric",
             month: "long",
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
-        };
-        return now.toLocaleDateString(
-            lang === "id" ? "id-ID" : "en-US",
-            options
-        );
+        });
     };
 
-    // Order type labels
     const orderTypeLabels = {
-        "dine-in": lang === "id" ? "🍽 Makan di Tempat" : "🍽 Dine In",
-        takeaway: lang === "id" ? "🥡 Bawa Pulang" : "🥡 Takeaway",
-        delivery: lang === "id" ? "🚚 Delivery" : "🚚 Delivery",
+        "dine-in": lang === "id" ? "Makan di Tempat" : "Dine In",
+        takeaway: lang === "id" ? "Bawa Pulang" : "Takeaway",
+        delivery: lang === "id" ? "Delivery" : "Delivery",
     };
 
-    // Generate WhatsApp message template
+    // Generate WhatsApp message - FIXED tanpa emoji problematic
     const generateWhatsAppMessage = () => {
         const storeName = settings.storeName || "Store";
         const dateTime = getDateTime();
 
-        // Header
-        let message =
-            lang === "id" ? `🛒 *PESANAN BARU*\n` : `🛒 *NEW ORDER*\n`;
+        let lines = [];
 
-        message += `━━━━━━━━━━━━━━━━━━\n`;
-        message += `🏪 *${storeName}*\n`;
-        message += `📅 ${dateTime}\n`;
-        message += `━━━━━━━━━━━━━━━━━━\n\n`;
+        // Header
+        lines.push(
+            lang === "id" ? "=== PESANAN BARU ===" : "=== NEW ORDER ==="
+        );
+        lines.push("");
+        lines.push(storeName);
+        lines.push(dateTime);
+        lines.push("-------------------");
+        lines.push("");
 
         // Customer info
         if (customerName) {
-            message +=
+            lines.push(
                 lang === "id"
-                    ? `👤 *Nama:* ${customerName}\n`
-                    : `👤 *Name:* ${customerName}\n`;
+                    ? "Nama: " + customerName
+                    : "Name: " + customerName
+            );
         }
-
-        message += `📋 *${orderTypeLabels[orderType]}*\n`;
+        lines.push(
+            lang === "id"
+                ? "Tipe: " + orderTypeLabels[orderType]
+                : "Type: " + orderTypeLabels[orderType]
+        );
 
         if (orderType === "dine-in" && tableNumber) {
-            message +=
+            lines.push(
                 lang === "id"
-                    ? `💺 *No. Meja:* ${tableNumber}\n`
-                    : `💺 *Table No:* ${tableNumber}\n`;
+                    ? "No. Meja: " + tableNumber
+                    : "Table No: " + tableNumber
+            );
         }
-
-        message += `\n`;
+        lines.push("");
 
         // Order items
-        message +=
-            lang === "id" ? `📝 *DETAIL PESANAN:*\n` : `📝 *ORDER DETAILS:*\n`;
-        message += `━━━━━━━━━━━━━━━━━━\n`;
+        lines.push(
+            lang === "id" ? "--- DETAIL PESANAN ---" : "--- ORDER DETAILS ---"
+        );
+        lines.push("");
 
         cart.forEach((item, index) => {
             const itemTotal = item.price * item.qty;
-            message += `\n${index + 1}. *${item.name}*\n`;
-            message += `   ${item.qty}x @ Rp ${formatPrice(item.price)}\n`;
-            message += `   = Rp ${formatPrice(itemTotal)}\n`;
-
+            lines.push(index + 1 + ". " + item.name);
+            lines.push("   " + item.qty + "x @ Rp " + formatPrice(item.price));
+            lines.push("   = Rp " + formatPrice(itemTotal));
             if (item.note) {
-                message += `   📝 _${item.note}_\n`;
+                lines.push("   Catatan: " + item.note);
             }
+            lines.push("");
         });
 
-        message += `\n━━━━━━━━━━━━━━━━━━\n`;
+        lines.push("-------------------");
+        lines.push(
+            lang === "id"
+                ? "TOTAL: Rp " +
+                      formatPrice(totalPrice) +
+                      " (" +
+                      totalItems +
+                      " item)"
+                : "TOTAL: Rp " +
+                      formatPrice(totalPrice) +
+                      " (" +
+                      totalItems +
+                      " items)"
+        );
+        lines.push("-------------------");
 
-        // Total
-        message += `💰 *TOTAL: Rp ${formatPrice(
-            totalPrice
-        )}* (${totalItems} item)\n`;
-        message += `━━━━━━━━━━━━━━━━━━\n`;
-
-        // Additional notes
         if (customerNote) {
-            message += `\n📌 *${
-                lang === "id" ? "Catatan Tambahan" : "Additional Notes"
-            }:*\n`;
-            message += `${customerNote}\n`;
+            lines.push("");
+            lines.push(
+                lang === "id" ? "Catatan Tambahan:" : "Additional Notes:"
+            );
+            lines.push(customerNote);
         }
 
-        // Footer
-        message += `\n━━━━━━━━━━━━━━━━━━\n`;
-        message +=
-            lang === "id"
-                ? `🙏 Terima kasih telah memesan!\n`
-                : `🙏 Thank you for ordering!\n`;
-        message +=
-            lang === "id"
-                ? `_Pesan ini dikirim melalui BookletKu_`
-                : `_Sent via BookletKu_`;
+        lines.push("");
+        lines.push(lang === "id" ? "Terima kasih!" : "Thank you!");
+        lines.push("- BookletKu -");
 
-        return message;
+        return lines.join("\n");
     };
 
-    // Send to WhatsApp
     const orderViaWhatsApp = () => {
-        const stripVS16 = (text) => text.replace(/\uFE0F/g, "");
-        const message = stripVS16(generateWhatsAppMessage());
-
-        const phoneNumber = "6285157680550"; // TANPA +
-
-        const waUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
-            message
-        )}`;
-
+        const message = generateWhatsAppMessage();
+        const phoneNumber = (settings.whatsappNumber || "").replace(
+            /[^0-9]/g,
+            ""
+        );
+        const waUrl =
+            "https://wa.me/" +
+            phoneNumber +
+            "?text=" +
+            encodeURIComponent(message);
         window.open(waUrl, "_blank");
     };
 
-    // Quick order (tanpa form detail)
-    const quickOrder = () => {
-        setShowOrderForm(true);
-    };
-
     return (
-        <div className="min-h-screen bg-gray-50 pb-40">
+        <div className="min-h-screen bg-gray-50 pb-32">
             {/* Header */}
             <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
                 <div className="p-4">
@@ -247,7 +235,6 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                             </div>
                         </div>
 
-                        {/* Cart button in header */}
                         {cart.length > 0 && (
                             <button
                                 onClick={() => setShowCart(!showCart)}
@@ -261,7 +248,6 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                         )}
                     </div>
 
-                    {/* Search */}
                     <div className="relative">
                         <Search
                             size={18}
@@ -272,26 +258,22 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder={t.searchPlaceholder}
-                            className="w-full pl-10 pr-4 py-2.5 bg-white text-gray-900 rounded-xl outline-none focus:ring-2 focus:ring-white/50"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white text-gray-900 rounded-xl outline-none"
                         />
                     </div>
                 </div>
 
-                {/* Categories */}
                 <div className="px-4 pb-4">
-                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+                    <div className="flex gap-2 overflow-x-auto pb-1">
                         {CATEGORIES.map((cat) => (
                             <button
                                 key={cat}
                                 onClick={() => setSelectedCategory(cat)}
-                                className={`
-                  px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-medium transition-all
-                  ${
-                      selectedCategory === cat
-                          ? "bg-white text-green-600"
-                          : "bg-white/20 text-white hover:bg-white/30"
-                  }
-                `}
+                                className={`px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-medium transition-all ${
+                                    selectedCategory === cat
+                                        ? "bg-white text-green-600"
+                                        : "bg-white/20 text-white hover:bg-white/30"
+                                }`}
                             >
                                 {cat === "all" ? t.allCategories : t[cat]}
                             </button>
@@ -300,16 +282,14 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                 </div>
             </div>
 
-            {/* Menu Grid */}
+            {/* Menu Grid - Fixed Card Size */}
             <div className="p-4">
                 {filteredItems.length === 0 ? (
                     <div className="text-center py-12">
-                        <p className="text-gray-500">
-                            {t.noResults || "No items found"}
-                        </p>
+                        <p className="text-gray-500">{t.noResults}</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         {filteredItems.map((item) => (
                             <MenuCardSimple
                                 key={item.id}
@@ -321,11 +301,11 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                 )}
             </div>
 
-            {/* Floating Cart Button (Mobile) */}
+            {/* Floating Cart Button */}
             {cart.length > 0 && !showCart && (
                 <button
                     onClick={() => setShowCart(true)}
-                    className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-all animate-bounce z-40"
+                    className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-all z-40"
                 >
                     <ShoppingCart size={24} />
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">
@@ -341,10 +321,9 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                     onClick={() => setShowCart(false)}
                 >
                     <div
-                        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] overflow-hidden animate-slideUp"
+                        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Cart Header */}
                         <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
                             <h3 className="font-bold text-lg flex items-center gap-2">
                                 <ShoppingCart
@@ -362,66 +341,58 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                             </button>
                         </div>
 
-                        {/* Cart Items */}
-                        <div className="overflow-y-auto max-h-[50vh] p-4 space-y-3">
+                        <div className="overflow-y-auto max-h-[40vh] p-4 space-y-3">
                             {cart.map((item) => (
                                 <div
                                     key={item.id}
                                     className="bg-gray-50 rounded-xl p-3"
                                 >
                                     <div className="flex gap-3">
-                                        {/* Item Image */}
                                         {item.photo && (
                                             <img
                                                 src={item.photo}
                                                 alt={item.name}
-                                                className="w-16 h-16 object-cover rounded-lg"
+                                                className="w-14 h-14 object-cover rounded-lg"
                                             />
                                         )}
-
-                                        {/* Item Details */}
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-medium text-gray-900 truncate">
+                                            <h4 className="font-medium text-gray-900 text-sm truncate">
                                                 {item.name}
                                             </h4>
                                             <p className="text-green-600 font-bold text-sm">
                                                 Rp {formatPrice(item.price)}
                                             </p>
-
-                                            {/* Quantity Controls */}
-                                            <div className="flex items-center gap-2 mt-2">
+                                            <div className="flex items-center gap-2 mt-1">
                                                 <button
                                                     onClick={() =>
                                                         updateQty(item.id, -1)
                                                     }
-                                                    className="w-8 h-8 flex items-center justify-center bg-white border rounded-lg hover:bg-gray-100"
+                                                    className="w-7 h-7 flex items-center justify-center bg-white border rounded-lg"
                                                 >
-                                                    <Minus size={14} />
+                                                    <Minus size={12} />
                                                 </button>
-                                                <span className="font-medium w-8 text-center">
+                                                <span className="font-medium w-6 text-center text-sm">
                                                     {item.qty}
                                                 </span>
                                                 <button
                                                     onClick={() =>
                                                         updateQty(item.id, 1)
                                                     }
-                                                    className="w-8 h-8 flex items-center justify-center bg-white border rounded-lg hover:bg-gray-100"
+                                                    className="w-7 h-7 flex items-center justify-center bg-white border rounded-lg"
                                                 >
-                                                    <Plus size={14} />
+                                                    <Plus size={12} />
                                                 </button>
                                                 <button
                                                     onClick={() =>
                                                         removeFromCart(item.id)
                                                     }
-                                                    className="ml-auto p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                                                    className="ml-auto p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
                                                 >
-                                                    <Trash2 size={16} />
+                                                    <Trash2 size={14} />
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Item Note */}
                                     <input
                                         type="text"
                                         value={item.note || ""}
@@ -433,25 +404,22 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                                         }
                                         placeholder={
                                             lang === "id"
-                                                ? "+ Tambah catatan (contoh: pedas, tanpa sayur)"
-                                                : "+ Add note (e.g. spicy, no vegetables)"
+                                                ? "Catatan: pedas, tanpa sayur..."
+                                                : "Note: spicy, no veggies..."
                                         }
-                                        className="w-full mt-2 px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                                        className="w-full mt-2 px-3 py-1.5 text-xs border rounded-lg outline-none focus:ring-1 focus:ring-green-500"
                                     />
                                 </div>
                             ))}
                         </div>
 
-                        {/* Order Form */}
                         {showOrderForm && (
                             <div className="border-t p-4 bg-gray-50 space-y-3">
-                                <h4 className="font-medium text-gray-900">
+                                <h4 className="font-medium text-gray-900 text-sm">
                                     {lang === "id"
-                                        ? "📋 Detail Pesanan"
-                                        : "📋 Order Details"}
+                                        ? "Detail Pesanan"
+                                        : "Order Details"}
                                 </h4>
-
-                                {/* Customer Name */}
                                 <input
                                     type="text"
                                     value={customerName}
@@ -463,10 +431,8 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                                             ? "Nama Anda"
                                             : "Your Name"
                                     }
-                                    className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                                    className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500"
                                 />
-
-                                {/* Order Type */}
                                 <div className="flex gap-2">
                                     {Object.entries(orderTypeLabels).map(
                                         ([key, label]) => (
@@ -475,10 +441,10 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                                                 onClick={() =>
                                                     setOrderType(key)
                                                 }
-                                                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                                                className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all ${
                                                     orderType === key
                                                         ? "bg-green-500 text-white"
-                                                        : "bg-white border hover:border-green-500"
+                                                        : "bg-white border"
                                                 }`}
                                             >
                                                 {label}
@@ -486,8 +452,6 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                                         )
                                     )}
                                 </div>
-
-                                {/* Table Number (for dine-in) */}
                                 {orderType === "dine-in" && (
                                     <input
                                         type="text"
@@ -500,11 +464,9 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                                                 ? "Nomor Meja"
                                                 : "Table Number"
                                         }
-                                        className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500"
                                     />
                                 )}
-
-                                {/* Additional Note */}
                                 <textarea
                                     value={customerNote}
                                     onChange={(e) =>
@@ -516,22 +478,18 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                                             : "Additional notes..."
                                     }
                                     rows={2}
-                                    className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                                    className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500 resize-none"
                                 />
                             </div>
                         )}
 
-                        {/* Cart Footer */}
                         <div className="sticky bottom-0 bg-white border-t p-4 space-y-3">
-                            {/* Total */}
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-500">
-                                        {lang === "id"
-                                            ? "Total Pembayaran"
-                                            : "Total Payment"}
+                                    <p className="text-xs text-gray-500">
+                                        {lang === "id" ? "Total" : "Total"}
                                     </p>
-                                    <p className="text-2xl font-bold text-gray-900">
+                                    <p className="text-xl font-bold text-gray-900">
                                         Rp {formatPrice(totalPrice)}
                                     </p>
                                 </div>
@@ -539,46 +497,29 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                                     onClick={() =>
                                         setShowOrderForm(!showOrderForm)
                                     }
-                                    className="text-sm text-green-600 flex items-center gap-1"
+                                    className="text-xs text-green-600 flex items-center gap-1"
                                 >
                                     {showOrderForm ? (
-                                        <ChevronDown size={16} />
+                                        <ChevronDown size={14} />
                                     ) : (
-                                        <ChevronUp size={16} />
+                                        <ChevronUp size={14} />
                                     )}
-                                    {lang === "id"
-                                        ? "Detail Pesanan"
-                                        : "Order Details"}
+                                    {lang === "id" ? "Detail" : "Details"}
                                 </button>
                             </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={clearCart}
-                                    className="px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
-                                >
-                                    <Trash2
-                                        size={20}
-                                        className="text-gray-500"
-                                    />
-                                </button>
-                                <button
-                                    onClick={orderViaWhatsApp}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
-                                >
-                                    <MessageCircle size={20} />
-                                    {lang === "id"
-                                        ? "Pesan via WhatsApp"
-                                        : "Order via WhatsApp"}
-                                    <Send size={16} />
-                                </button>
-                            </div>
-
-                            {/* Clear Cart */}
+                            <button
+                                onClick={orderViaWhatsApp}
+                                className="w-full flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
+                            >
+                                <MessageCircle size={20} />
+                                {lang === "id"
+                                    ? "Pesan via WhatsApp"
+                                    : "Order via WhatsApp"}
+                                <Send size={16} />
+                            </button>
                             <button
                                 onClick={clearCart}
-                                className="w-full py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                className="w-full py-2 text-xs text-red-500 hover:bg-red-50 rounded-lg"
                             >
                                 {lang === "id"
                                     ? "Kosongkan Keranjang"
