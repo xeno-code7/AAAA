@@ -166,7 +166,7 @@ function Sidebar({ isOpen, onClose, currentPage, onNavigate }) {
                 </nav>
 
                 {/* User & Logout */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">
+                <div className="absolute left-0 right-0 p-4 border-t bg-white">
                     <div className="flex items-center gap-3 mb-3">
                         <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                             <Users size={18} className="text-green-600" />
