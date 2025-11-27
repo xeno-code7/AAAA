@@ -18,6 +18,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { supabase } from "../config/supabase";
+import Toast from "./Toast";
 
 export function UserProfile() {
     const navigate = useNavigate();
@@ -31,7 +32,7 @@ export function UserProfile() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState({ type: "", text: "" });
+    const [toast, setToast] = useState({ message: "", type: "" });
 
     // Mock order history
     const [orders] = useState([
@@ -78,8 +79,8 @@ export function UserProfile() {
         });
 
     const showMessage = (type, text) => {
-        setMessage({ type, text });
-        setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+        setToast({ message: text, type });
+        setTimeout(() => setToast({ message: "", type: "" }), 3000);
     };
 
     const handleUpdateName = async () => {
@@ -173,6 +174,12 @@ export function UserProfile() {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast({ message: "", type: "" })}
+            />
+
             {/* Header */}
             <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4">
                 <div className="flex items-center gap-3 mb-4">
@@ -203,19 +210,6 @@ export function UserProfile() {
                     </div>
                 </div>
             </div>
-
-            {/* Message Toast */}
-            {message.text && (
-                <div
-                    className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-sm ${
-                        message.type === "success"
-                            ? "bg-green-500 text-white"
-                            : "bg-red-500 text-white"
-                    }`}
-                >
-                    {message.text}
-                </div>
-            )}
 
             {/* Stats */}
             <div className="p-4 -mt-4">

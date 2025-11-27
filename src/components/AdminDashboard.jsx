@@ -315,6 +315,8 @@ function SettingsPage({ settings, onSave }) {
     const { t, lang, toggleLang } = useLanguage();
     const [form, setForm] = useState({
         storeName: settings.storeName || "",
+        storeLocation: settings.storeLocation || "",
+        operatingHours: settings.operatingHours || "",
         whatsappNumber: settings.whatsappNumber || "",
     });
     const [saved, setSaved] = useState(false);
@@ -326,14 +328,22 @@ function SettingsPage({ settings, onSave }) {
     };
 
     return (
-        <div className="max-w-xl space-y-6">
-            <div className="bg-white rounded-xl border p-6 space-y-4">
-                <h3 className="font-semibold">
-                    {lang === "id" ? "Pengaturan Toko" : "Store Settings"}
-                </h3>
+        <div className="max-w-3xl mx-auto space-y-6">
+            {/* Store Information Card */}
+            <div className="bg-white rounded-xl border shadow-sm p-6 space-y-5">
+                <div className="text-center pb-4 border-b">
+                    <h3 className="text-xl font-bold text-gray-900">
+                        {lang === "id" ? "Informasi Toko" : "Store Information"}
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                        {lang === "id"
+                            ? "Kelola informasi toko Anda"
+                            : "Manage your store information"}
+                    </p>
+                </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t.storeName}
                     </label>
                     <input
@@ -345,12 +355,61 @@ function SettingsPage({ settings, onSave }) {
                                 storeName: e.target.value,
                             }))
                         }
-                        className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder={
+                            lang === "id"
+                                ? "Contoh: Warung Makan Barokah"
+                                : "e.g. Barokah Restaurant"
+                        }
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {lang === "id" ? "Lokasi Toko" : "Store Location"}
+                    </label>
+                    <input
+                        type="text"
+                        value={form.storeLocation}
+                        onChange={(e) =>
+                            setForm((prev) => ({
+                                ...prev,
+                                storeLocation: e.target.value,
+                            }))
+                        }
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder={
+                            lang === "id"
+                                ? "Contoh: Jl. Sudirman No. 123, Jakarta"
+                                : "e.g. 123 Main Street, Jakarta"
+                        }
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {lang === "id" ? "Jam Operasional" : "Operating Hours"}
+                    </label>
+                    <input
+                        type="text"
+                        value={form.operatingHours}
+                        onChange={(e) =>
+                            setForm((prev) => ({
+                                ...prev,
+                                operatingHours: e.target.value,
+                            }))
+                        }
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder={
+                            lang === "id"
+                                ? "Contoh: Senin - Minggu, 08:00 - 22:00"
+                                : "e.g. Mon - Sun, 08:00 - 22:00"
+                        }
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t.whatsappNumber}
                     </label>
                     <input
@@ -362,35 +421,74 @@ function SettingsPage({ settings, onSave }) {
                                 whatsappNumber: e.target.value,
                             }))
                         }
-                        className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         placeholder="628123456789"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Format: 628xxx</p>
+                    <p className="text-xs text-gray-500 mt-1.5">
+                        {lang === "id"
+                            ? "Format: 628xxx (tanpa + atau 0 di depan)"
+                            : "Format: 628xxx (without + or 0)"}
+                    </p>
                 </div>
 
                 <button
                     onClick={handleSave}
-                    className={`w-full py-2 rounded-lg font-medium transition-colors ${
+                    className={`w-full py-3 rounded-lg font-semibold transition-all ${
                         saved
-                            ? "bg-green-100 text-green-600"
-                            : "bg-green-600 text-white hover:bg-green-700"
+                            ? "bg-green-100 text-green-700 ring-2 ring-green-500"
+                            : "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow"
                     }`}
                 >
-                    {saved ? (lang === "id" ? "Tersimpan!" : "Saved!") : t.save}
+                    {saved ? (
+                        <span className="flex items-center justify-center gap-2">
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                />
+                            </svg>
+                            {lang === "id" ? "Tersimpan!" : "Saved!"}
+                        </span>
+                    ) : (
+                        t.save
+                    )}
                 </button>
             </div>
 
-            <div className="bg-white rounded-xl border p-6">
-                <h3 className="font-semibold mb-4">
-                    {lang === "id" ? "Bahasa" : "Language"}
-                </h3>
-                <button
-                    onClick={toggleLang}
-                    className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                    <Globe size={18} />
-                    {lang === "id" ? "Indonesia" : "English"}
-                </button>
+            {/* Language Settings Card */}
+            <div className="bg-white rounded-xl border shadow-sm p-6">
+                <div className="text-center pb-4 border-b mb-4">
+                    <h3 className="text-xl font-bold text-gray-900">
+                        {lang === "id"
+                            ? "Pengaturan Bahasa"
+                            : "Language Settings"}
+                    </h3>
+                </div>
+                <div className="flex justify-center">
+                    <button
+                        onClick={toggleLang}
+                        className="flex items-center gap-3 px-6 py-3 border-2 border-gray-300 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all"
+                    >
+                        <Globe size={22} className="text-gray-600" />
+                        <div className="text-left">
+                            <p className="font-semibold text-gray-900">
+                                {lang === "id" ? "Indonesia" : "English"}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                {lang === "id"
+                                    ? "Bahasa Indonesia"
+                                    : "English Language"}
+                            </p>
+                        </div>
+                    </button>
+                </div>
             </div>
         </div>
     );

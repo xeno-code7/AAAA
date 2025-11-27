@@ -19,10 +19,14 @@ import {
     Image as ImageIcon,
     TrendingUp,
     Award,
+    UtensilsCrossed,
+    Package as PackageIcon,
+    Truck,
 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useSupabase } from "../hooks/useSupabase";
+import Toast from "./Toast";
 
 const CATEGORIES = ["all", "food", "drink", "snack", "dessert", "other"];
 
@@ -117,7 +121,7 @@ function ItemDetailModal({ item, isOpen, onClose, onAddToCart }) {
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl"
+                className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl animate-slideUp"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="relative aspect-video bg-gray-100">
@@ -138,13 +142,6 @@ function ItemDetailModal({ item, isOpen, onClose, onAddToCart }) {
                     >
                         <X size={20} />
                     </button>
-                    {item.views > 150 && (
-                        <div className="absolute bottom-3 left-3">
-                            <Badge variant="trending">
-                                <TrendingUp size={10} /> {t.trending}
-                            </Badge>
-                        </div>
-                    )}
                 </div>
 
                 <div className="p-5">
@@ -221,6 +218,116 @@ function ItemDetailModal({ item, isOpen, onClose, onAddToCart }) {
     );
 }
 
+// Order Type Selection Modal
+function OrderTypeModal({ isOpen, onClose, onSelectType }) {
+    const { lang } = useLanguage();
+
+    if (!isOpen) return null;
+
+    const orderTypes = [
+        {
+            id: "dine-in",
+            icon: UtensilsCrossed,
+            label: lang === "id" ? "Makan di Tempat" : "Dine In",
+            desc:
+                lang === "id"
+                    ? "Nikmati di resto kami"
+                    : "Enjoy at our restaurant",
+            color: "from-orange-500 to-red-500",
+        },
+        {
+            id: "takeaway",
+            icon: PackageIcon,
+            label: lang === "id" ? "Bawa Pulang" : "Takeaway",
+            desc: lang === "id" ? "Pesan & bawa pulang" : "Order & take home",
+            color: "from-blue-500 to-cyan-500",
+        },
+        {
+            id: "delivery",
+            icon: Truck,
+            label: lang === "id" ? "Delivery" : "Delivery",
+            desc:
+                lang === "id"
+                    ? "Antar ke lokasi Anda"
+                    : "Deliver to your location",
+            color: "from-green-500 to-emerald-500",
+        },
+    ];
+
+    return (
+        <div
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-2xl max-w-md w-full shadow-2xl animate-slideUp"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-6">
+                    <div className="text-center mb-6">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <ShoppingCart
+                                size={32}
+                                className="text-green-600"
+                            />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            {lang === "id"
+                                ? "Pilih Tipe Pesanan"
+                                : "Select Order Type"}
+                        </h2>
+                        <p className="text-gray-500 text-sm mt-1">
+                            {lang === "id"
+                                ? "Bagaimana Anda ingin memesan?"
+                                : "How would you like to order?"}
+                        </p>
+                    </div>
+
+                    <div className="space-y-3">
+                        {orderTypes.map((type) => (
+                            <button
+                                key={type.id}
+                                onClick={() => onSelectType(type.id)}
+                                className="w-full p-4 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:shadow-md transition-all group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div
+                                        className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center flex-shrink-0`}
+                                    >
+                                        <type.icon
+                                            size={24}
+                                            className="text-white"
+                                        />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="font-semibold text-gray-900">
+                                            {type.label}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                            {type.desc}
+                                        </p>
+                                    </div>
+                                    <ChevronDown
+                                        size={20}
+                                        className="text-gray-400 group-hover:text-green-500 transform -rotate-90"
+                                    />
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={onClose}
+                        className="w-full mt-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        {lang === "id" ? "Batal" : "Cancel"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function PublicMenu() {
     const navigate = useNavigate();
     const { t, lang, toggleLang } = useLanguage();
@@ -231,22 +338,21 @@ export function PublicMenu() {
     const [search, setSearch] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [showCart, setShowCart] = useState(false);
-    const [showOrderForm, setShowOrderForm] = useState(false);
+    const [showOrderTypeModal, setShowOrderTypeModal] = useState(false);
     const [customerName, setCustomerName] = useState("");
     const [customerNote, setCustomerNote] = useState("");
     const [tableNumber, setTableNumber] = useState("");
     const [orderType, setOrderType] = useState("dine-in");
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
+    const [toast, setToast] = useState({ message: "", type: "" });
 
-    // Filter and group items
     const filteredItems = items
         .filter((item) =>
             item.name.toLowerCase().includes(search.toLowerCase())
         )
         .sort((a, b) => a.order - b.order);
 
-    // Group by category for "all" view
     const groupedItems = {};
     if (selectedCategory === "all") {
         CATEGORIES.slice(1).forEach((cat) => {
@@ -263,6 +369,11 @@ export function PublicMenu() {
         );
     }
 
+    const showToast = (message, type = "success") => {
+        setToast({ message, type });
+        setTimeout(() => setToast({ message: "", type: "" }), 3000);
+    };
+
     const addToCart = (item, qty = 1, note = "") => {
         incrementViews(item.id);
         setCart((prev) => {
@@ -276,16 +387,20 @@ export function PublicMenu() {
             }
             return [...prev, { ...item, qty, note }];
         });
+        showToast(
+            lang === "id"
+                ? `${item.name} ditambahkan ke keranjang`
+                : `${item.name} added to cart`
+        );
     };
 
     const handleItemClick = (item) => {
         setSelectedItem(item);
     };
 
-    // FIXED: Auto remove when qty = 0
     const updateQty = (id, delta) => {
-        setCart((prev) => {
-            return prev
+        setCart((prev) =>
+            prev
                 .map((item) => {
                     if (item.id === id) {
                         const newQty = item.qty + delta;
@@ -293,11 +408,10 @@ export function PublicMenu() {
                     }
                     return item;
                 })
-                .filter((item) => item.qty > 0); // Auto remove if qty = 0
-        });
+                .filter((item) => item.qty > 0)
+        );
     };
 
-    // Direct set quantity (with auto remove)
     const setItemQty = (id, qty) => {
         if (qty <= 0) {
             removeFromCart(id);
@@ -319,7 +433,6 @@ export function PublicMenu() {
     const clearCart = () => {
         setCart([]);
         setShowCart(false);
-        setShowOrderForm(false);
     };
 
     const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -353,6 +466,12 @@ export function PublicMenu() {
         "dine-in": String.fromCodePoint(0x1f37d),
         takeaway: String.fromCodePoint(0x1f961),
         delivery: String.fromCodePoint(0x1f69a),
+    };
+
+    const handleSelectOrderType = (type) => {
+        setOrderType(type);
+        setShowOrderTypeModal(false);
+        setShowCart(true);
     };
 
     const generateWhatsAppMessage = () => {
@@ -427,6 +546,14 @@ export function PublicMenu() {
         return msg;
     };
 
+    const handleCheckout = () => {
+        if (!orderType) {
+            setShowOrderTypeModal(true);
+        } else {
+            orderViaWhatsApp();
+        }
+    };
+
     const orderViaWhatsApp = () => {
         const message = generateWhatsAppMessage();
         const phone = (settings.whatsappNumber || "").replace(/[^0-9]/g, "");
@@ -437,7 +564,12 @@ export function PublicMenu() {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-32">
-            {/* Header */}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast({ message: "", type: "" })}
+            />
+
             <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white sticky top-0 z-40">
                 <div className="p-4">
                     <div className="flex items-center justify-between mb-3">
@@ -551,7 +683,7 @@ export function PublicMenu() {
 
                             {cart.length > 0 && (
                                 <button
-                                    onClick={() => setShowCart(true)}
+                                    onClick={() => setShowOrderTypeModal(true)}
                                     className="relative p-2 bg-white/20 rounded-lg"
                                 >
                                     <ShoppingCart size={18} />
@@ -597,7 +729,6 @@ export function PublicMenu() {
                 </div>
             </div>
 
-            {/* Menu Grid - GROUPED BY CATEGORY */}
             <div className="p-4 space-y-6">
                 {Object.keys(groupedItems).length === 0 ? (
                     <div className="text-center py-16">
@@ -613,7 +744,6 @@ export function PublicMenu() {
                     Object.entries(groupedItems).map(
                         ([category, categoryItems]) => (
                             <div key={category}>
-                                {/* Category Header */}
                                 <div className="flex items-center gap-3 mb-3">
                                     <h2 className="text-lg font-bold text-gray-900">
                                         {t[category] || category}
@@ -623,8 +753,6 @@ export function PublicMenu() {
                                         {categoryItems.length} item
                                     </span>
                                 </div>
-
-                                {/* Items Grid */}
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                     {categoryItems.map((item) => (
                                         <MenuItemCard
@@ -649,9 +777,15 @@ export function PublicMenu() {
                 onAddToCart={addToCart}
             />
 
-            {cart.length > 0 && !showCart && (
+            <OrderTypeModal
+                isOpen={showOrderTypeModal}
+                onClose={() => setShowOrderTypeModal(false)}
+                onSelectType={handleSelectOrderType}
+            />
+
+            {cart.length > 0 && !showCart && !showOrderTypeModal && (
                 <button
-                    onClick={() => setShowCart(true)}
+                    onClick={() => setShowOrderTypeModal(true)}
                     className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 z-30"
                 >
                     <ShoppingCart size={24} />
@@ -661,7 +795,6 @@ export function PublicMenu() {
                 </button>
             )}
 
-            {/* Cart Panel */}
             {showCart && cart.length > 0 && (
                 <div
                     className="fixed inset-0 bg-black/50 z-50"
@@ -672,14 +805,19 @@ export function PublicMenu() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
-                            <h3 className="font-bold text-lg flex items-center gap-2">
-                                <ShoppingCart
-                                    size={20}
-                                    className="text-green-600"
-                                />
-                                {lang === "id" ? "Keranjang" : "Cart"} (
-                                {totalItems})
-                            </h3>
+                            <div>
+                                <h3 className="font-bold text-lg flex items-center gap-2">
+                                    <ShoppingCart
+                                        size={20}
+                                        className="text-green-600"
+                                    />
+                                    {lang === "id" ? "Keranjang" : "Cart"} (
+                                    {totalItems})
+                                </h3>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    {orderTypeLabels[orderType]}
+                                </p>
+                            </div>
                             <button
                                 onClick={() => setShowCart(false)}
                                 className="p-2 hover:bg-gray-100 rounded-full"
@@ -718,8 +856,6 @@ export function PublicMenu() {
                                                 >
                                                     <Minus size={10} />
                                                 </button>
-
-                                                {/* Editable quantity input */}
                                                 <input
                                                     type="number"
                                                     value={item.qty}
@@ -734,7 +870,6 @@ export function PublicMenu() {
                                                     className="w-12 text-center text-sm font-medium border rounded py-0.5 outline-none focus:ring-1 focus:ring-green-500"
                                                     min="0"
                                                 />
-
                                                 <button
                                                     onClick={() =>
                                                         updateQty(item.id, 1)
@@ -774,68 +909,45 @@ export function PublicMenu() {
                             ))}
                         </div>
 
-                        {showOrderForm && (
-                            <div className="border-t p-4 bg-gray-50 space-y-3">
+                        <div className="border-t p-4 bg-gray-50 space-y-3">
+                            <input
+                                type="text"
+                                value={customerName}
+                                onChange={(e) =>
+                                    setCustomerName(e.target.value)
+                                }
+                                placeholder={
+                                    lang === "id" ? "Nama Anda" : "Your Name"
+                                }
+                                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500"
+                            />
+                            {orderType === "dine-in" && (
                                 <input
                                     type="text"
-                                    value={customerName}
+                                    value={tableNumber}
                                     onChange={(e) =>
-                                        setCustomerName(e.target.value)
+                                        setTableNumber(e.target.value)
                                     }
                                     placeholder={
-                                        lang === "id"
-                                            ? "Nama Anda"
-                                            : "Your Name"
+                                        lang === "id" ? "No. Meja" : "Table No."
                                     }
                                     className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500"
                                 />
-                                <div className="flex gap-2">
-                                    {Object.entries(orderTypeLabels).map(
-                                        ([k, v]) => (
-                                            <button
-                                                key={k}
-                                                onClick={() => setOrderType(k)}
-                                                className={`flex-1 py-2 rounded-lg text-xs font-medium ${
-                                                    orderType === k
-                                                        ? "bg-green-500 text-white"
-                                                        : "bg-white border"
-                                                }`}
-                                            >
-                                                {v}
-                                            </button>
-                                        )
-                                    )}
-                                </div>
-                                {orderType === "dine-in" && (
-                                    <input
-                                        type="text"
-                                        value={tableNumber}
-                                        onChange={(e) =>
-                                            setTableNumber(e.target.value)
-                                        }
-                                        placeholder={
-                                            lang === "id"
-                                                ? "No. Meja"
-                                                : "Table No."
-                                        }
-                                        className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500"
-                                    />
-                                )}
-                                <textarea
-                                    value={customerNote}
-                                    onChange={(e) =>
-                                        setCustomerNote(e.target.value)
-                                    }
-                                    placeholder={
-                                        lang === "id"
-                                            ? "Catatan tambahan..."
-                                            : "Additional notes..."
-                                    }
-                                    rows={2}
-                                    className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500 resize-none"
-                                />
-                            </div>
-                        )}
+                            )}
+                            <textarea
+                                value={customerNote}
+                                onChange={(e) =>
+                                    setCustomerNote(e.target.value)
+                                }
+                                placeholder={
+                                    lang === "id"
+                                        ? "Catatan tambahan..."
+                                        : "Additional notes..."
+                                }
+                                rows={2}
+                                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500 resize-none"
+                            />
+                        </div>
 
                         <div className="sticky bottom-0 bg-white border-t p-4 space-y-3">
                             <div className="flex items-center justify-between">
@@ -848,17 +960,12 @@ export function PublicMenu() {
                                     </p>
                                 </div>
                                 <button
-                                    onClick={() =>
-                                        setShowOrderForm(!showOrderForm)
-                                    }
-                                    className="text-xs text-green-600 flex items-center gap-1"
+                                    onClick={() => setShowOrderTypeModal(true)}
+                                    className="text-xs text-green-600 hover:underline"
                                 >
-                                    {showOrderForm ? (
-                                        <ChevronDown size={14} />
-                                    ) : (
-                                        <ChevronUp size={14} />
-                                    )}{" "}
-                                    Detail
+                                    {lang === "id"
+                                        ? "Ubah Tipe"
+                                        : "Change Type"}
                                 </button>
                             </div>
                             <button

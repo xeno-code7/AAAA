@@ -2,6 +2,11 @@ import React, { useEffect } from "react";
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from "lucide-react";
 
 export function Toast({ message, type = "success", onClose, duration = 3000 }) {
+    // --- PERBAIKAN FATAL DI SINI ---
+    // Jika tidak ada pesan, JANGAN render apa-apa (return null).
+    // Tanpa baris ini, aplikasi akan crash saat pertama kali load.
+    if (!message) return null;
+
     useEffect(() => {
         if (duration > 0) {
             const timer = setTimeout(onClose, duration);
@@ -30,14 +35,17 @@ export function Toast({ message, type = "success", onClose, duration = 3000 }) {
         warning: "text-yellow-500",
     };
 
-    const Icon = icons[type];
+    // Fallback: Jika type salah/kosong, gunakan 'info' agar tidak crash
+    const Icon = icons[type] || icons.info;
+    const currentStyle = styles[type] || styles.info;
+    const currentIconStyle = iconStyles[type] || iconStyles.info;
 
     return (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slideDown">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] animate-slideDown">
             <div
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border ${styles[type]} min-w-[300px] max-w-md`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border ${currentStyle} min-w-[300px] max-w-md bg-white`}
             >
-                <Icon size={20} className={iconStyles[type]} />
+                <Icon size={20} className={currentIconStyle} />
                 <p className="flex-1 text-sm font-medium">{message}</p>
                 <button
                     onClick={onClose}
