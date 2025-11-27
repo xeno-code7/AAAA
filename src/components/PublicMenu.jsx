@@ -1,6 +1,27 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+    Search,
+    ShoppingCart,
+    X,
+    Minus,
+    Plus,
+    MessageCircle,
+    Trash2,
+    Send,
+    Store,
+    ChevronDown,
+    ChevronUp,
+    User,
+    LogIn,
+    Settings,
+    Globe,
+    Image as ImageIcon,
+    TrendingUp,
+    Award,
+    UtensilsCrossed,
+    Package as PackageIcon,
+    Truck,
   Search,
   ShoppingCart,
   X,
@@ -23,6 +44,7 @@ import {
 import { useLanguage } from "../contexts/LanguageContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useSupabase } from "../hooks/useSupabase";
+import Toast from "./Toast";
 
 const DEFAULT_CATEGORIES = [
   "all",
@@ -118,6 +140,34 @@ function ItemDetailModal({ item, isOpen, onClose, onAddToCart }) {
     onClose();
   };
 
+    return (
+        <div
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl animate-slideUp"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="relative aspect-video bg-gray-100">
+                    {item.photo ? (
+                        <img
+                            src={item.photo}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon size={48} className="text-gray-300" />
+                        </div>
+                    )}
+                    <button
+                        onClick={onClose}
+                        className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
   return (
     <div
       className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
@@ -220,6 +270,116 @@ function ItemDetailModal({ item, isOpen, onClose, onAddToCart }) {
   );
 }
 
+// Order Type Selection Modal
+function OrderTypeModal({ isOpen, onClose, onSelectType }) {
+    const { lang } = useLanguage();
+
+    if (!isOpen) return null;
+
+    const orderTypes = [
+        {
+            id: "dine-in",
+            icon: UtensilsCrossed,
+            label: lang === "id" ? "Makan di Tempat" : "Dine In",
+            desc:
+                lang === "id"
+                    ? "Nikmati di resto kami"
+                    : "Enjoy at our restaurant",
+            color: "from-orange-500 to-red-500",
+        },
+        {
+            id: "takeaway",
+            icon: PackageIcon,
+            label: lang === "id" ? "Bawa Pulang" : "Takeaway",
+            desc: lang === "id" ? "Pesan & bawa pulang" : "Order & take home",
+            color: "from-blue-500 to-cyan-500",
+        },
+        {
+            id: "delivery",
+            icon: Truck,
+            label: lang === "id" ? "Delivery" : "Delivery",
+            desc:
+                lang === "id"
+                    ? "Antar ke lokasi Anda"
+                    : "Deliver to your location",
+            color: "from-green-500 to-emerald-500",
+        },
+    ];
+
+    return (
+        <div
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-2xl max-w-md w-full shadow-2xl animate-slideUp"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-6">
+                    <div className="text-center mb-6">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <ShoppingCart
+                                size={32}
+                                className="text-green-600"
+                            />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            {lang === "id"
+                                ? "Pilih Tipe Pesanan"
+                                : "Select Order Type"}
+                        </h2>
+                        <p className="text-gray-500 text-sm mt-1">
+                            {lang === "id"
+                                ? "Bagaimana Anda ingin memesan?"
+                                : "How would you like to order?"}
+                        </p>
+                    </div>
+
+                    <div className="space-y-3">
+                        {orderTypes.map((type) => (
+                            <button
+                                key={type.id}
+                                onClick={() => onSelectType(type.id)}
+                                className="w-full p-4 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:shadow-md transition-all group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div
+                                        className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center flex-shrink-0`}
+                                    >
+                                        <type.icon
+                                            size={24}
+                                            className="text-white"
+                                        />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="font-semibold text-gray-900">
+                                            {type.label}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                            {type.desc}
+                                        </p>
+                                    </div>
+                                    <ChevronDown
+                                        size={20}
+                                        className="text-gray-400 group-hover:text-green-500 transform -rotate-90"
+                                    />
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={onClose}
+                        className="w-full mt-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        {lang === "id" ? "Batal" : "Cancel"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function PublicMenu() {
   const navigate = useNavigate();
   const { t, lang, toggleLang } = useLanguage();
@@ -241,13 +401,14 @@ export function PublicMenu() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showCart, setShowCart] = useState(false);
-  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [showOrderTypeModal, setShowOrderTypeModal] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerNote, setCustomerNote] = useState("");
   const [tableNumber, setTableNumber] = useState("");
   const [orderType, setOrderType] = useState("dine-in");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+    const [toast, setToast] = useState({ message: "", type: "" });
 
   // Filter and group items
   const filteredItems = items
@@ -271,6 +432,26 @@ export function PublicMenu() {
       (item) => item.category === selectedCategory
     );
   }
+    const groupedItems = {};
+    if (selectedCategory === "all") {
+        CATEGORIES.slice(1).forEach((cat) => {
+            const categoryItems = filteredItems.filter(
+                (item) => item.category === cat
+            );
+            if (categoryItems.length > 0) {
+                groupedItems[cat] = categoryItems;
+            }
+        });
+    } else {
+        groupedItems[selectedCategory] = filteredItems.filter(
+            (item) => item.category === selectedCategory
+        );
+    }
+
+    const showToast = (message, type = "success") => {
+        setToast({ message, type });
+        setTimeout(() => setToast({ message: "", type: "" }), 3000);
+    };
 
   const addToCart = (item, qty = 1, note = "") => {
     incrementViews(item.id);
@@ -285,6 +466,11 @@ export function PublicMenu() {
       }
       return [...prev, { ...item, qty, note }];
     });
+        showToast(
+            lang === "id"
+                ? `${item.name} ditambahkan ke keranjang`
+                : `${item.name} added to cart`
+        );
   };
 
   const handleItemClick = (item) => {
@@ -358,6 +544,12 @@ export function PublicMenu() {
     delivery: String.fromCodePoint(0x1f69a),
   };
 
+    const handleSelectOrderType = (type) => {
+        setOrderType(type);
+        setShowOrderTypeModal(false);
+        setShowCart(true);
+    };
+
   const generateWhatsAppMessage = () => {
     const cart_emoji = String.fromCodePoint(0x1f6d2);
     const store_emoji = String.fromCodePoint(0x1f3ea);
@@ -424,6 +616,14 @@ export function PublicMenu() {
     return msg;
   };
 
+    const handleCheckout = () => {
+        if (!orderType) {
+            setShowOrderTypeModal(true);
+        } else {
+            orderViaWhatsApp();
+        }
+    };
+
   const orderViaWhatsApp = () => {
     const message = generateWhatsAppMessage();
     const phone = (settings.whatsappNumber || "").replace(/[^0-9]/g, "");
@@ -450,6 +650,30 @@ export function PublicMenu() {
                 <p className="text-[#cccfe7] text-xs">{t.tagline}</p>
               </div>
             </div>
+    return (
+        <div className="min-h-screen bg-gray-50 pb-32">
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast({ message: "", type: "" })}
+            />
+
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white sticky top-0 z-40">
+                <div className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                <Store size={20} />
+                            </div>
+                            <div>
+                                <h1 className="font-bold">
+                                    {settings.storeName || "BookletKu"}
+                                </h1>
+                                <p className="text-green-100 text-xs">
+                                    {t.tagline}
+                                </p>
+                            </div>
+                        </div>
 
             <div className="flex items-center gap-2">
               <button
@@ -527,6 +751,19 @@ export function PublicMenu() {
                 )}
               </div>
 
+                            {cart.length > 0 && (
+                                <button
+                                    onClick={() => setShowOrderTypeModal(true)}
+                                    className="relative p-2 bg-white/20 rounded-lg"
+                                >
+                                    <ShoppingCart size={18} />
+                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                                        {totalItems}
+                                    </span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
               {cart.length > 0 && (
                 <button
                   onClick={() => setShowCart(true)}
@@ -759,6 +996,45 @@ export function PublicMenu() {
                 />
               </div>
             )}
+                        <div className="border-t p-4 bg-gray-50 space-y-3">
+                            <input
+                                type="text"
+                                value={customerName}
+                                onChange={(e) =>
+                                    setCustomerName(e.target.value)
+                                }
+                                placeholder={
+                                    lang === "id" ? "Nama Anda" : "Your Name"
+                                }
+                                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500"
+                            />
+                            {orderType === "dine-in" && (
+                                <input
+                                    type="text"
+                                    value={tableNumber}
+                                    onChange={(e) =>
+                                        setTableNumber(e.target.value)
+                                    }
+                                    placeholder={
+                                        lang === "id" ? "No. Meja" : "Table No."
+                                    }
+                                    className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500"
+                                />
+                            )}
+                            <textarea
+                                value={customerNote}
+                                onChange={(e) =>
+                                    setCustomerNote(e.target.value)
+                                }
+                                placeholder={
+                                    lang === "id"
+                                        ? "Catatan tambahan..."
+                                        : "Additional notes..."
+                                }
+                                rows={2}
+                                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500 resize-none"
+                            />
+                        </div>
 
             <div className="sticky bottom-0 bg-white border-t p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -800,6 +1076,49 @@ export function PublicMenu() {
       )}
     </div>
   );
+                        <div className="sticky bottom-0 bg-white border-t p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs text-gray-500">
+                                        Total
+                                    </p>
+                                    <p className="text-xl font-bold">
+                                        Rp {formatPrice(totalPrice)}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowOrderTypeModal(true)}
+                                    className="text-xs text-green-600 hover:underline"
+                                >
+                                    {lang === "id"
+                                        ? "Ubah Tipe"
+                                        : "Change Type"}
+                                </button>
+                            </div>
+                            <button
+                                onClick={orderViaWhatsApp}
+                                className="w-full flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600"
+                            >
+                                <MessageCircle size={20} />
+                                {lang === "id"
+                                    ? "Pesan via WhatsApp"
+                                    : "Order via WhatsApp"}
+                                <Send size={16} />
+                            </button>
+                            <button
+                                onClick={clearCart}
+                                className="w-full py-2 text-xs text-red-500 hover:bg-red-50 rounded-lg"
+                            >
+                                {lang === "id"
+                                    ? "Kosongkan Keranjang"
+                                    : "Clear Cart"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default PublicMenu;

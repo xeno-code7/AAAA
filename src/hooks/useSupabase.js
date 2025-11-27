@@ -1,16 +1,28 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase, STORAGE_BUCKET, DEFAULT_STORE_ID } from "../config/supabase";
+import { useState, useEffect } from "react";
+import { supabase } from "../config/supabase";
+
+const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000001";
 
 export function useSupabase() {
   const [items, setItems] = useState([]);
   const [settings, setSettingsState] = useState({
-    storeName: "Warung Makan Berkah",
+    storeName: "Berkah",
+        storeLocation: "",
+        operatingHours: "",
     whatsappNumber: "6285157680550",
   });
   const [customCategories, setCustomCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+    // Fetch menu items
+    const fetchItems = async () => {
+        try {
+            const { data, error } = await supabase
+                .from("menu_items")
+                .select("*")
+                .eq("store_id", DEFAULT_STORE_ID)
+                .order("sort_order", { ascending: true });
   // ============================================
   // FETCH FUNCTIONS
   // ============================================
@@ -40,6 +52,17 @@ export function useSupabase() {
         views: item.views || 0,
         order: item.sort_order || 0,
       }));
+            // Transform data to match component expectations
+            const transformedData = data.map((item) => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                description: item.description,
+                category: item.category,
+                photo: item.photo,
+                views: item.views,
+                order: item.sort_order,
+            }));
 
       console.log("✅ Items fetched:", transformedData.length);
       setItems(transformedData);
@@ -55,6 +78,14 @@ export function useSupabase() {
     }
   }, []);
 
+    // Fetch store settings
+    const fetchSettings = async () => {
+        try {
+            const { data, error } = await supabase
+                .from("stores")
+                .select("*")
+                .eq("id", DEFAULT_STORE_ID)
+                .single();
   const fetchSettings = useCallback(async () => {
     try {
       console.log("📥 Fetching store settings...");
@@ -146,6 +177,58 @@ export function useSupabase() {
         .insert(newItem)
         .select()
         .single();
+    // Initial fetch
+    useEffect(() => {
+        const init = async () => {
+            setLoading(true);
+            await Promise.all([fetchItems(), fetchSettings()]);
+            setLoading(false);
+        };
+        init();
+
+        // Real-time subscription for menu items
+        const itemsSubscription = supabase
+            .channel("menu_items_changes")
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "menu_items" },
+                () => fetchItems()
+            )
+            .subscribe();
+
+        // Real-time subscription for store settings
+        const storeSubscription = supabase
+            .channel("stores_changes")
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "stores" },
+                () => fetchSettings()
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(itemsSubscription);
+            supabase.removeChannel(storeSubscription);
+        };
+    }, []);
+
+    // Add new item
+    const addItem = async (itemData) => {
+        try {
+            const { data, error } = await supabase
+                .from("menu_items")
+                .insert({
+                    store_id: DEFAULT_STORE_ID,
+                    name: itemData.name,
+                    price: itemData.price,
+                    description: itemData.description,
+                    category: itemData.category,
+                    photo: itemData.photo,
+                    views: 0,
+                    sort_order: items.length,
+                })
+                .select()
+                .single();
 
       if (error) {
         console.error("❌ Add item error:", error);
@@ -267,13 +350,30 @@ export function useSupabase() {
     }
   };
 
-  const incrementViews = async (id) => {
-    try {
-      const item = items.find((i) => i.id === id);
-      if (!item) return;
+    // Increment views
+    const incrementViews = async (id) => {
+        try {
+            // Get current views
+            const item = items.find((i) => i.id === id);
+            if (!item) return;
 
-      const newViews = (item.views || 0) + 1;
+            const { error } = await supabase
+                .from("menu_items")
+                .update({ views: item.views + 1 })
+                .eq("id", id);
 
+            if (error) throw error;
+
+            // Update local state immediately for better UX
+            setItems((prev) =>
+                prev.map((i) =>
+                    i.id === id ? { ...i, views: i.views + 1 } : i
+                )
+            );
+        } catch (err) {
+            console.error("Error incrementing views:", err);
+        }
+    };
       setItems((prev) =>
         prev.map((i) => (i.id === id ? { ...i, views: newViews } : i))
       );
