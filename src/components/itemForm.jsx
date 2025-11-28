@@ -17,6 +17,7 @@ export function ItemForm({
   onCancel,
   onUploadPhoto,
   customCategories = [],
+  addCustomCategory,
 }) {
   const { t } = useLanguage();
 
@@ -31,11 +32,8 @@ export function ItemForm({
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
   const [uploadError, setUploadError] = useState("");
-
-  // Custom category states
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [newCategory, setNewCategory] = useState("");
-  const [addingCategory, setAddingCategory] = useState(false);
 
   // Combine default and custom categories
   const allCategories = [...DEFAULT_CATEGORIES, ...customCategories];
@@ -110,7 +108,6 @@ export function ItemForm({
       return;
     }
 
-    // Validate format (only letters, numbers, space, dash)
     if (!/^[a-z0-9\s-]+$/.test(trimmed)) {
       alert(
         "Kategori hanya boleh berisi huruf, angka, spasi, dan tanda hubung"
@@ -118,16 +115,20 @@ export function ItemForm({
       return;
     }
 
-    setAddingCategory(true);
-
-    // Add to custom categories via parent component
-    // The parent should handle saving to database/localStorage
-    handleChange("category", trimmed);
-
-    // Reset
-    setNewCategory("");
-    setShowCategoryInput(false);
-    setAddingCategory(false);
+    // Add via parent component
+    if (addCustomCategory) {
+      const success = addCustomCategory(trimmed);
+      if (success) {
+        handleChange("category", trimmed);
+        setNewCategory("");
+        setShowCategoryInput(false);
+      }
+    } else {
+      // Fallback if parent doesn't provide the function
+      handleChange("category", trimmed);
+      setNewCategory("");
+      setShowCategoryInput(false);
+    }
   };
 
   const validate = () => {
@@ -212,13 +213,11 @@ export function ItemForm({
         />
       </div>
 
-      {/* Category - WITH CUSTOM OPTION */}
+      {/* Category */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {t.category}
         </label>
-
-        {/* Category Select */}
         <div className="flex gap-2">
           <select
             value={form.category}
@@ -231,19 +230,23 @@ export function ItemForm({
               </option>
             ))}
           </select>
-
-          {/* Add Custom Category Button */}
           <button
             type="button"
             onClick={() => setShowCategoryInput(!showCategoryInput)}
             className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             title="Tambah kategori baru"
           >
-            <Plus size={18} className={showCategoryInput ? "rotate-45" : ""} />
+            <Plus
+              size={18}
+              className={
+                showCategoryInput
+                  ? "rotate-45 transition-transform"
+                  : "transition-transform"
+              }
+            />
           </button>
         </div>
 
-        {/* Custom Category Input */}
         {showCategoryInput && (
           <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
             <p className="text-xs text-blue-700 font-medium">
@@ -263,12 +266,11 @@ export function ItemForm({
                 placeholder="Nama kategori (contoh: seafood)"
                 className="flex-1 px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                 maxLength={20}
-                disabled={addingCategory}
               />
               <button
                 type="button"
                 onClick={handleAddCustomCategory}
-                disabled={!newCategory.trim() || addingCategory}
+                disabled={!newCategory.trim()}
                 className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Check size={16} />
@@ -320,19 +322,9 @@ export function ItemForm({
 
         {!form.photo && (
           <label
-            className={`
-                            flex flex-col items-center justify-center 
-                            w-full h-32 
-                            border-2 border-dashed border-gray-300 rounded-lg 
-                            cursor-pointer 
-                            hover:bg-gray-50 hover:border-blue-400
-                            transition-all
-                            ${
-                              uploading
-                                ? "opacity-50 pointer-events-none bg-gray-50"
-                                : ""
-                            }
-                        `}
+            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-all ${
+              uploading ? "opacity-50 pointer-events-none bg-gray-50" : ""
+            }`}
           >
             {uploading ? (
               <div className="flex flex-col items-center">
@@ -395,14 +387,9 @@ export function ItemForm({
           type="button"
           onClick={handleSubmit}
           disabled={uploading}
-          className={`
-                        flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium transition-colors
-                        ${
-                          uploading
-                            ? "opacity-50 cursor-not-allowed"
-                            : "hover:bg-blue-700"
-                        }
-                    `}
+          className={`flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium transition-colors ${
+            uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
+          }`}
         >
           {uploading ? "Mengupload..." : t.save}
         </button>

@@ -1,48 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../config/supabase";
 
 const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000001";
+const STORAGE_BUCKET = "menu-photos";
 
 export function useSupabase() {
   const [items, setItems] = useState([]);
   const [settings, setSettingsState] = useState({
-    storeName: "Berkah",
-        storeLocation: "",
-        operatingHours: "",
-    whatsappNumber: "6285157680550",
+    storeName: "",
+    storeLocation: "",
+    operatingHours: "",
+    whatsappNumber: "",
   });
   const [customCategories, setCustomCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-    // Fetch menu items
-    const fetchItems = async () => {
-        try {
-            const { data, error } = await supabase
-                .from("menu_items")
-                .select("*")
-                .eq("store_id", DEFAULT_STORE_ID)
-                .order("sort_order", { ascending: true });
-  // ============================================
-  // FETCH FUNCTIONS
-  // ============================================
-
+  // Fetch Items
   const fetchItems = useCallback(async () => {
     try {
-      console.log("📥 Fetching menu items...");
-
       const { data, error } = await supabase
         .from("menu_items")
         .select("*")
         .eq("store_id", DEFAULT_STORE_ID)
         .order("sort_order", { ascending: true });
 
-      if (error) {
-        console.error("❌ Fetch items error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      const transformedData = (data || []).map((item) => ({
+      const transformed = (data || []).map((item) => ({
         id: item.id,
         name: item.name,
         price: item.price,
@@ -52,44 +36,19 @@ export function useSupabase() {
         views: item.views || 0,
         order: item.sort_order || 0,
       }));
-            // Transform data to match component expectations
-            const transformedData = data.map((item) => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                description: item.description,
-                category: item.category,
-                photo: item.photo,
-                views: item.views,
-                order: item.sort_order,
-            }));
 
-      console.log("✅ Items fetched:", transformedData.length);
-      setItems(transformedData);
-
-      // Extract custom categories from items
-      extractCustomCategories(transformedData);
-
-      return transformedData;
+      setItems(transformed);
+      extractCustomCategories(transformed);
+      return transformed;
     } catch (err) {
-      console.error("❌ Error fetching items:", err);
-      setError(err.message);
+      console.error("❌ Fetch items:", err);
       return [];
     }
   }, []);
 
-    // Fetch store settings
-    const fetchSettings = async () => {
-        try {
-            const { data, error } = await supabase
-                .from("stores")
-                .select("*")
-                .eq("id", DEFAULT_STORE_ID)
-                .single();
+  // Fetch Settings
   const fetchSettings = useCallback(async () => {
     try {
-      console.log("📥 Fetching store settings...");
-
       const { data, error } = await supabase
         .from("stores")
         .select("*")
@@ -98,8 +57,7 @@ export function useSupabase() {
 
       if (error) {
         if (error.code === "PGRST116") {
-          console.log("🏪 Creating default store...");
-          const { data: newStore, error: createError } = await supabase
+          const { data: newStore } = await supabase
             .from("stores")
             .insert({
               id: DEFAULT_STORE_ID,
@@ -109,449 +67,206 @@ export function useSupabase() {
             .select()
             .single();
 
-          if (createError) throw createError;
-
           setSettingsState({
             storeName: newStore.name,
+            storeLocation: newStore.location || "",
+            operatingHours: newStore.operating_hours || "",
             whatsappNumber: newStore.whatsapp_number,
           });
+
           return;
         }
         throw error;
       }
 
-      if (data) {
-        console.log("✅ Settings fetched:", data.name);
-        setSettingsState({
-          storeName: data.name,
-          whatsappNumber: data.whatsapp_number,
-        });
-      }
+      setSettingsState({
+        storeName: data.name,
+        storeLocation: data.location || "",
+        operatingHours: data.operating_hours || "",
+        whatsappNumber: data.whatsapp_number,
+      });
     } catch (err) {
-      console.error("❌ Error fetching settings:", err);
+      console.error("❌ Fetch settings:", err);
     }
   }, []);
 
-  // Extract custom categories from items
+  // Extract Custom Categories
   const extractCustomCategories = (items) => {
     const defaultCategories = ["food", "drink", "snack", "dessert", "other"];
-    const allCategories = [...new Set(items.map((item) => item.category))];
-    const custom = allCategories.filter(
-      (cat) => !defaultCategories.includes(cat)
-    );
-
-    console.log("📁 Custom categories found:", custom);
-    setCustomCategories(custom);
+    const allCats = [...new Set(items.map((i) => i.category))];
+    setCustomCategories(allCats.filter((c) => !defaultCategories.includes(c)));
   };
 
+  // Initial Load + Realtime
   useEffect(() => {
-    const initData = async () => {
+    const init = async () => {
       setLoading(true);
       await Promise.all([fetchItems(), fetchSettings()]);
       setLoading(false);
     };
-    initData();
+
+    init();
+
+    const itemsSub = supabase
+      .channel("menu_items_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "menu_items" },
+        fetchItems
+      )
+      .subscribe();
+
+    const settingsSub = supabase
+      .channel("stores_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "stores" },
+        fetchSettings
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(itemsSub);
+      supabase.removeChannel(settingsSub);
+    };
   }, [fetchItems, fetchSettings]);
 
-  // ============================================
-  // CRUD OPERATIONS
-  // ============================================
-
+  // Add Item
   const addItem = async (itemData) => {
     try {
-      console.log("➕ Adding new item:", itemData.name);
-
-      const newItem = {
-        store_id: DEFAULT_STORE_ID,
-        name: itemData.name,
-        price: Number(itemData.price) || 0,
-        description: itemData.description || "",
-        category: itemData.category || "food",
-        photo: itemData.photo || "",
-        views: 0,
-        sort_order: items.length,
-      };
-
       const { data, error } = await supabase
         .from("menu_items")
-        .insert(newItem)
-        .select()
-        .single();
-    // Initial fetch
-    useEffect(() => {
-        const init = async () => {
-            setLoading(true);
-            await Promise.all([fetchItems(), fetchSettings()]);
-            setLoading(false);
-        };
-        init();
-
-        // Real-time subscription for menu items
-        const itemsSubscription = supabase
-            .channel("menu_items_changes")
-            .on(
-                "postgres_changes",
-                { event: "*", schema: "public", table: "menu_items" },
-                () => fetchItems()
-            )
-            .subscribe();
-
-        // Real-time subscription for store settings
-        const storeSubscription = supabase
-            .channel("stores_changes")
-            .on(
-                "postgres_changes",
-                { event: "*", schema: "public", table: "stores" },
-                () => fetchSettings()
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(itemsSubscription);
-            supabase.removeChannel(storeSubscription);
-        };
-    }, []);
-
-    // Add new item
-    const addItem = async (itemData) => {
-        try {
-            const { data, error } = await supabase
-                .from("menu_items")
-                .insert({
-                    store_id: DEFAULT_STORE_ID,
-                    name: itemData.name,
-                    price: itemData.price,
-                    description: itemData.description,
-                    category: itemData.category,
-                    photo: itemData.photo,
-                    views: 0,
-                    sort_order: items.length,
-                })
-                .select()
-                .single();
-
-      if (error) {
-        console.error("❌ Add item error:", error);
-        throw error;
-      }
-
-      console.log("✅ Item added:", data.id);
-
-      const transformedItem = {
-        id: data.id,
-        name: data.name,
-        price: data.price,
-        description: data.description,
-        category: data.category,
-        photo: data.photo,
-        views: data.views,
-        order: data.sort_order,
-      };
-
-      setItems((prev) => {
-        const newItems = [...prev, transformedItem];
-        extractCustomCategories(newItems);
-        return newItems;
-      });
-
-      return transformedItem;
-    } catch (err) {
-      console.error("❌ Error adding item:", err);
-      throw err;
-    }
-  };
-
-  const updateItem = async (id, itemData) => {
-    try {
-      console.log("✏️ Updating item:", id);
-
-      const updates = {
-        name: itemData.name,
-        price: Number(itemData.price) || 0,
-        description: itemData.description || "",
-        category: itemData.category || "food",
-        photo: itemData.photo || "",
-        updated_at: new Date().toISOString(),
-      };
-
-      const { data, error } = await supabase
-        .from("menu_items")
-        .update(updates)
-        .eq("id", id)
+        .insert({
+          store_id: DEFAULT_STORE_ID,
+          name: itemData.name,
+          price: itemData.price,
+          description: itemData.description || "",
+          category: itemData.category || "food",
+          photo: itemData.photo || "",
+          views: 0,
+          sort_order: items.length,
+        })
         .select()
         .single();
 
-      if (error) {
-        console.error("❌ Update item error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log("✅ Item updated:", data.id);
-
-      setItems((prev) => {
-        const updated = prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                name: data.name,
-                price: data.price,
-                description: data.description,
-                category: data.category,
-                photo: data.photo,
-              }
-            : item
-        );
-        extractCustomCategories(updated);
-        return updated;
-      });
-
+      await fetchItems();
       return data;
     } catch (err) {
-      console.error("❌ Error updating item:", err);
+      console.error("❌ Add item:", err);
       throw err;
     }
   };
 
+  // Update Item
+  const updateItem = async (id, itemData) => {
+    try {
+      const { error } = await supabase
+        .from("menu_items")
+        .update({
+          name: itemData.name,
+          price: itemData.price,
+          description: itemData.description || "",
+          category: itemData.category,
+          photo: itemData.photo,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      await fetchItems();
+    } catch (err) {
+      console.error("❌ Update item:", err);
+      throw err;
+    }
+  };
+
+  // Delete Item
   const deleteItem = async (id) => {
     try {
-      console.log("🗑️ Deleting item:", id);
-
-      const item = items.find((i) => i.id === id);
-
-      const { error } = await supabase.from("menu_items").delete().eq("id", id);
-
-      if (error) {
-        console.error("❌ Delete item error:", error);
-        throw error;
-      }
-
-      if (item?.photo && item.photo.includes(STORAGE_BUCKET)) {
-        try {
-          const photoPath = item.photo.split(`${STORAGE_BUCKET}/`)[1];
-          if (photoPath) {
-            await supabase.storage.from(STORAGE_BUCKET).remove([photoPath]);
-            console.log("🖼️ Photo deleted:", photoPath);
-          }
-        } catch (photoErr) {
-          console.warn("⚠️ Could not delete photo:", photoErr);
-        }
-      }
-
-      console.log("✅ Item deleted:", id);
-
-      setItems((prev) => {
-        const filtered = prev.filter((item) => item.id !== id);
-        extractCustomCategories(filtered);
-        return filtered;
-      });
+      await supabase.from("menu_items").delete().eq("id", id);
+      await fetchItems();
     } catch (err) {
-      console.error("❌ Error deleting item:", err);
+      console.error("❌ Delete item:", err);
       throw err;
     }
   };
 
-    // Increment views
-    const incrementViews = async (id) => {
-        try {
-            // Get current views
-            const item = items.find((i) => i.id === id);
-            if (!item) return;
-
-            const { error } = await supabase
-                .from("menu_items")
-                .update({ views: item.views + 1 })
-                .eq("id", id);
-
-            if (error) throw error;
-
-            // Update local state immediately for better UX
-            setItems((prev) =>
-                prev.map((i) =>
-                    i.id === id ? { ...i, views: i.views + 1 } : i
-                )
-            );
-        } catch (err) {
-            console.error("Error incrementing views:", err);
-        }
-    };
-      setItems((prev) =>
-        prev.map((i) => (i.id === id ? { ...i, views: newViews } : i))
-      );
-
-      await supabase
-        .from("menu_items")
-        .update({ views: newViews })
-        .eq("id", id);
-    } catch (err) {
-      console.error("❌ Error incrementing views:", err);
-    }
-  };
-
+  // Reorder
   const reorderItems = async (newItems) => {
     try {
-      console.log("🔄 Reordering items...");
-
-      const reorderedItems = newItems.map((item, idx) => ({
-        ...item,
-        order: idx,
-      }));
-      setItems(reorderedItems);
-
-      const updates = newItems.map((item, index) =>
-        supabase
+      for (let i = 0; i < newItems.length; i++) {
+        await supabase
           .from("menu_items")
-          .update({ sort_order: index })
-          .eq("id", item.id)
-      );
-
-      await Promise.all(updates);
-      console.log("✅ Items reordered");
-    } catch (err) {
-      console.error("❌ Error reordering items:", err);
+          .update({ sort_order: i })
+          .eq("id", newItems[i].id);
+      }
       await fetchItems();
+    } catch (err) {
+      console.error("❌ Reorder:", err);
     }
   };
 
-  // ============================================
-  // PHOTO UPLOAD
-  // ============================================
-
+  // Upload Photo
   const uploadPhoto = async (file) => {
     try {
-      console.log("📤 Uploading photo:", file.name);
-
-      if (!file) throw new Error("No file provided");
-
-      const allowedTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/gif",
-        "image/webp",
-      ];
-      if (!allowedTypes.includes(file.type)) {
-        throw new Error("File type not allowed. Use JPG, PNG, GIF, or WebP.");
-      }
-
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        throw new Error("File too large. Maximum 5MB.");
-      }
-
-      const fileExt = file.name.split(".").pop().toLowerCase();
-      const timestamp = Date.now();
-      const randomStr = Math.random().toString(36).substring(2, 10);
-      const fileName = `menu-photos/${timestamp}-${randomStr}.${fileExt}`;
-
-      console.log("📁 Uploading to:", fileName);
+      const ext = file.name.split(".").pop();
+      const fileName = `menu-${Date.now()}.${ext}`;
 
       const { data, error } = await supabase.storage
         .from(STORAGE_BUCKET)
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+        .upload(fileName, file);
 
-      if (error) {
-        console.error("❌ Upload error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log("✅ Upload success:", data.path);
-
+      // getPublicUrl returns an object with data.publicUrl
       const { data: urlData } = supabase.storage
         .from(STORAGE_BUCKET)
         .getPublicUrl(fileName);
 
-      console.log("🔗 Public URL:", urlData.publicUrl);
-
-      return {
-        url: urlData.publicUrl,
-        path: fileName,
-      };
+      // Ensure we return an object with `.url` to match ItemForm's expectation of result.url
+      return { url: urlData?.publicUrl || "" };
     } catch (err) {
-      console.error("❌ Error uploading photo:", err);
+      console.error("❌ Upload photo:", err);
       throw err;
     }
   };
 
-  const deletePhoto = async (photoUrl) => {
+  // Save Store Settings
+  const setSettings = async (s) => {
     try {
-      if (!photoUrl || !photoUrl.includes(STORAGE_BUCKET)) return;
-
-      const photoPath = photoUrl.split(`${STORAGE_BUCKET}/`)[1];
-      if (!photoPath) return;
-
-      console.log("🗑️ Deleting photo:", photoPath);
-
-      const { error } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .remove([photoPath]);
-
-      if (error) throw error;
-
-      console.log("✅ Photo deleted");
-    } catch (err) {
-      console.error("❌ Error deleting photo:", err);
-    }
-  };
-
-  // ============================================
-  // STORE SETTINGS
-  // ============================================
-
-  const setSettings = async (newSettings) => {
-    try {
-      console.log("💾 Saving settings:", newSettings);
-
-      const { error } = await supabase
+      await supabase
         .from("stores")
         .update({
-          name: newSettings.storeName,
-          whatsapp_number: newSettings.whatsappNumber,
-          updated_at: new Date().toISOString(),
+          name: s.storeName,
+          location: s.storeLocation,
+          operating_hours: s.operatingHours,
+          whatsapp_number: s.whatsappNumber,
         })
         .eq("id", DEFAULT_STORE_ID);
 
-      if (error) {
-        console.error("❌ Update settings error:", error);
-        throw error;
-      }
-
-      console.log("✅ Settings saved");
-      setSettingsState(newSettings);
+      setSettingsState(s);
     } catch (err) {
-      console.error("❌ Error updating settings:", err);
+      console.error("❌ Save settings:", err);
       throw err;
     }
   };
 
-  // ============================================
-  // RETURN
-  // ============================================
-
   return {
-    // Data
     items,
     settings,
-    customCategories, // NEW
+    customCategories,
     loading,
-    error,
 
-    // CRUD
     addItem,
     updateItem,
     deleteItem,
-    incrementViews,
     reorderItems,
 
-    // Photo
     uploadPhoto,
-    deletePhoto,
-
-    // Settings
     setSettings,
-
-    // Refresh
     refetch: fetchItems,
   };
 }

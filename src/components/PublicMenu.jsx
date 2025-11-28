@@ -1,50 +1,29 @@
-import React, { useState } from "react";
+// src/components/PublicMenu.jsx
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-    Search,
-    ShoppingCart,
-    X,
-    Minus,
-    Plus,
-    MessageCircle,
-    Trash2,
-    Send,
-    Store,
-    ChevronDown,
-    ChevronUp,
-    User,
-    LogIn,
-    Settings,
-    Globe,
-    Image as ImageIcon,
-    TrendingUp,
-    Award,
-    UtensilsCrossed,
-    Package as PackageIcon,
-    Truck,
-  Search,
   ShoppingCart,
   X,
   Minus,
   Plus,
-  MessageCircle,
-  Trash2,
-  Send,
-  Store,
-  ChevronDown,
-  ChevronUp,
-  User,
-  LogIn,
-  Settings,
-  Globe,
   Image as ImageIcon,
   TrendingUp,
   Award,
+  UtensilsCrossed,
+  Package as PackageIcon,
+  Truck,
+  Globe,
 } from "lucide-react";
+
 import { useLanguage } from "../contexts/LanguageContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useSupabase } from "../hooks/useSupabase";
 import Toast from "./Toast";
+
+/*
+  PublicMenu - Blue themed + Dine-in / Takeaway / Delivery
+  Layout: Large image cards (A)
+*/
 
 const DEFAULT_CATEGORIES = [
   "all",
@@ -60,145 +39,133 @@ function Badge({ children, variant }) {
     variant === "trending"
       ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white"
       : "bg-gradient-to-r from-amber-400 to-orange-500 text-white";
+
   return (
     <span
-      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded-full ${cls}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-full ${cls}`}
     >
       {children}
     </span>
   );
 }
 
-function MenuItemCard({ item, onClick }) {
+function MenuItemCardLarge({ item, onClick }) {
   const { t } = useLanguage();
-  const isPopular = item.views > 80 && item.views <= 150;
-  const isTrending = item.views > 150;
-  const formatPrice = (p) => new Intl.NumberFormat("id-ID").format(p);
+  const isPopular = (item?.views || 0) > 80 && (item?.views || 0) <= 150;
+  const isTrending = (item?.views || 0) > 150;
+
+  const formatPrice = (p) =>
+    new Intl.NumberFormat("id-ID").format(Number(p || 0));
 
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl border overflow-hidden cursor-pointer hover:shadow-lg active:scale-[0.98] transition-all group"
+      className="bg-white rounded-2xl border overflow-hidden cursor-pointer hover:shadow-lg active:scale-[0.99] transition-transform duration-150"
     >
-      <div className="relative aspect-square bg-gray-100 overflow-hidden">
-        {item.photo ? (
+      <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
+        {item?.photo ? (
           <img
             src={item.photo}
-            alt={item.name}
+            alt={item?.name || ""}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
+            onError={(e) => {
+              e.currentTarget.src = "/placeholder.jpg";
+            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <ImageIcon size={32} className="text-gray-300" />
+            <ImageIcon size={36} className="text-gray-300" />
           </div>
         )}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
+
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
           {isTrending && (
             <Badge variant="trending">
-              <TrendingUp size={10} /> {t.trending}
+              <TrendingUp size={12} /> {t?.trending || "Trending"}
             </Badge>
           )}
           {isPopular && (
             <Badge variant="popular">
-              <Award size={10} /> {t.popularItem}
+              <Award size={12} /> {t?.popularItem || "Popular"}
             </Badge>
           )}
         </div>
       </div>
-      <div className="p-3">
-        <h3 className="font-semibold text-gray-900 text-sm line-clamp-1">
-          {item.name}
+
+      <div className="p-4">
+        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+          {item?.name}
         </h3>
-        {item.description && (
-          <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">
+        {item?.description && (
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             {item.description}
           </p>
         )}
-        <p className="text-[#666fb8] font-bold mt-1">
-          Rp {formatPrice(item.price)}
-        </p>
+        <div className="flex items-center justify-between mt-3">
+          <p className="text-[#666fb8] font-bold text-lg">
+            Rp {formatPrice(item?.price)}
+          </p>
+          <div className="text-sm text-gray-500">{item?.category}</div>
+        </div>
       </div>
     </div>
   );
 }
 
-function ItemDetailModal({ item, isOpen, onClose, onAddToCart }) {
+function ItemDetailModal({ item, isOpen, onClose, onAdd }) {
   const { t, lang } = useLanguage();
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
 
   if (!isOpen || !item) return null;
 
-  const formatPrice = (p) => new Intl.NumberFormat("id-ID").format(p);
-  const totalPrice = item.price * quantity;
+  const formatPrice = (p) =>
+    new Intl.NumberFormat("id-ID").format(Number(p || 0));
+  const totalPrice = Number(item.price || 0) * quantity || 0;
 
   const handleAdd = () => {
-    onAddToCart(item, quantity, note);
+    if (onAdd) onAdd(item, quantity, note);
     setQuantity(1);
     setNote("");
     onClose();
   };
 
-    return (
-        <div
-            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-            onClick={onClose}
-        >
-            <div
-                className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl animate-slideUp"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="relative aspect-video bg-gray-100">
-                    {item.photo ? (
-                        <img
-                            src={item.photo}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <ImageIcon size={48} className="text-gray-300" />
-                        </div>
-                    )}
-                    <button
-                        onClick={onClose}
-                        className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
   return (
     <div
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl"
+        className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] overflow-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative aspect-video bg-gray-100">
+        <div className="relative aspect-[16/9] bg-gray-100">
           {item.photo ? (
             <img
               src={item.photo}
               alt={item.name}
               className="w-full h-full object-cover"
+              onError={(e) => (e.currentTarget.src = "/placeholder.jpg")}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <ImageIcon size={48} className="text-gray-300" />
             </div>
           )}
+
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+            className="absolute top-3 right-3 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full"
+            aria-label="Close"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
-          {item.views > 150 && (
+
+          {(item.views || 0) > 150 && (
             <div className="absolute bottom-3 left-3">
               <Badge variant="trending">
-                <TrendingUp size={10} /> {t.trending}
+                <TrendingUp size={12} /> {t?.trending || "Trending"}
               </Badge>
             </div>
           )}
@@ -206,7 +173,7 @@ function ItemDetailModal({ item, isOpen, onClose, onAddToCart }) {
 
         <div className="p-5">
           <h2 className="text-xl font-bold text-gray-900">{item.name}</h2>
-          <p className="text-2xl font-bold text-[#666fb8] mt-1">
+          <p className="text-2xl font-bold text-[#666fb8] mt-2">
             Rp {formatPrice(item.price)}
           </p>
 
@@ -220,19 +187,24 @@ function ItemDetailModal({ item, isOpen, onClose, onAddToCart }) {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {lang === "id" ? "Jumlah Pesanan" : "Quantity"}
             </label>
+
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-10 h-10 flex items-center justify-center border-2 border-gray-300 rounded-lg hover:border-green-500 transition-colors"
+                className="w-10 h-10 flex items-center justify-center border rounded-lg hover:border-[#666fb8]"
+                aria-label="Decrease"
               >
                 <Minus size={18} />
               </button>
+
               <span className="text-2xl font-bold w-12 text-center">
                 {quantity}
               </span>
+
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="w-10 h-10 flex items-center justify-center border-2 border-gray-300 rounded-lg hover:border-green-500 transition-colors"
+                className="w-10 h-10 flex items-center justify-center border rounded-lg hover:border-[#666fb8]"
+                aria-label="Increase"
               >
                 <Plus size={18} />
               </button>
@@ -252,15 +224,15 @@ function ItemDetailModal({ item, isOpen, onClose, onAddToCart }) {
                   ? "Contoh: pedas, tanpa sayur..."
                   : "e.g. spicy, no vegetables..."
               }
-              className="w-full px-4 py-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-[#666fb8]"
+              className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-[#666fb8]"
             />
           </div>
 
           <button
             onClick={handleAdd}
-            className="w-full mt-5 flex items-center justify-center gap-2 bg-[#666fb8]  hover:bg-[#666fb8]  text-white py-3.5 rounded-xl font-semibold transition-colors"
+            className="w-full mt-5 flex items-center justify-center gap-2 bg-[#666fb8] text-white py-3 rounded-xl font-semibold"
           >
-            <ShoppingCart size={20} />
+            <ShoppingCart size={18} />
             {lang === "id" ? "Tambah ke Keranjang" : "Add to Cart"} - Rp{" "}
             {formatPrice(totalPrice)}
           </button>
@@ -270,855 +242,582 @@ function ItemDetailModal({ item, isOpen, onClose, onAddToCart }) {
   );
 }
 
-// Order Type Selection Modal
-function OrderTypeModal({ isOpen, onClose, onSelectType }) {
-    const { lang } = useLanguage();
+function OrderTypeModal({ isOpen, onClose, onSelect }) {
+  const { lang } = useLanguage();
 
-    if (!isOpen) return null;
+  if (!isOpen) return null;
 
-    const orderTypes = [
-        {
-            id: "dine-in",
-            icon: UtensilsCrossed,
-            label: lang === "id" ? "Makan di Tempat" : "Dine In",
-            desc:
-                lang === "id"
-                    ? "Nikmati di resto kami"
-                    : "Enjoy at our restaurant",
-            color: "from-orange-500 to-red-500",
-        },
-        {
-            id: "takeaway",
-            icon: PackageIcon,
-            label: lang === "id" ? "Bawa Pulang" : "Takeaway",
-            desc: lang === "id" ? "Pesan & bawa pulang" : "Order & take home",
-            color: "from-blue-500 to-cyan-500",
-        },
-        {
-            id: "delivery",
-            icon: Truck,
-            label: lang === "id" ? "Delivery" : "Delivery",
-            desc:
-                lang === "id"
-                    ? "Antar ke lokasi Anda"
-                    : "Deliver to your location",
-            color: "from-green-500 to-emerald-500",
-        },
-    ];
+  const orderTypes = [
+    {
+      id: "dine-in",
+      icon: UtensilsCrossed,
+      label: lang === "id" ? "Makan di Tempat" : "Dine In",
+      desc: lang === "id" ? "Nikmati di tempat kami" : "Enjoy at our place",
+      color: "from-[#4f46e5] to-[#2b6cb0]",
+    },
+    {
+      id: "takeaway",
+      icon: PackageIcon,
+      label: lang === "id" ? "Bawa Pulang" : "Takeaway",
+      desc: lang === "id" ? "Pesan & bawa pulang" : "Order & take home",
+      color: "from-[#2563eb] to-[#06b6d4]",
+    },
+    {
+      id: "delivery",
+      icon: Truck,
+      label: lang === "id" ? "Antar (Delivery)" : "Delivery",
+      desc: lang === "id" ? "Kirim ke alamat Anda" : "Deliver to you",
+      color: "from-[#059669] to-[#10b981]",
+    },
+  ];
 
-    return (
-        <div
-            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-            onClick={onClose}
-        >
-            <div
-                className="bg-white rounded-2xl max-w-md w-full shadow-2xl animate-slideUp"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="p-6">
-                    <div className="text-center mb-6">
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <ShoppingCart
-                                size={32}
-                                className="text-green-600"
-                            />
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-900">
-                            {lang === "id"
-                                ? "Pilih Tipe Pesanan"
-                                : "Select Order Type"}
-                        </h2>
-                        <p className="text-gray-500 text-sm mt-1">
-                            {lang === "id"
-                                ? "Bagaimana Anda ingin memesan?"
-                                : "How would you like to order?"}
-                        </p>
-                    </div>
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl max-w-md w-full shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6 text-center">
+          <div className="w-14 h-14 bg-[#e9eefc] rounded-full flex items-center justify-center mx-auto mb-4">
+            <ShoppingCart size={26} className="text-[#666fb8]" />
+          </div>
+          <h3 className="text-2xl font-bold mb-1">
+            {lang === "id" ? "Pilih Tipe Pesanan" : "Select Order Type"}
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {lang === "id"
+              ? "Bagaimana Anda ingin memesan?"
+              : "How would you like to order?"}
+          </p>
 
-                    <div className="space-y-3">
-                        {orderTypes.map((type) => (
-                            <button
-                                key={type.id}
-                                onClick={() => onSelectType(type.id)}
-                                className="w-full p-4 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:shadow-md transition-all group"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div
-                                        className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center flex-shrink-0`}
-                                    >
-                                        <type.icon
-                                            size={24}
-                                            className="text-white"
-                                        />
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <p className="font-semibold text-gray-900">
-                                            {type.label}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                            {type.desc}
-                                        </p>
-                                    </div>
-                                    <ChevronDown
-                                        size={20}
-                                        className="text-gray-400 group-hover:text-green-500 transform -rotate-90"
-                                    />
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-
-                    <button
-                        onClick={onClose}
-                        className="w-full mt-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                        {lang === "id" ? "Batal" : "Cancel"}
-                    </button>
+          <div className="space-y-3">
+            {orderTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => {
+                  if (onSelect) onSelect(type.id);
+                }}
+                className="w-full p-3 rounded-xl border hover:shadow-md transition-all flex items-center gap-4"
+              >
+                <div
+                  className={`w-12 h-12 rounded-lg bg-gradient-to-br ${type.color} flex items-center justify-center`}
+                >
+                  <type.icon size={20} className="text-white" />
                 </div>
-            </div>
+                <div className="text-left flex-1">
+                  <div className="font-semibold text-gray-900">
+                    {type.label}
+                  </div>
+                  <div className="text-xs text-gray-500">{type.desc}</div>
+                </div>
+                <div className="text-gray-400">›</div>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={onClose}
+            className="mt-4 text-sm text-gray-600 w-full py-2.5 rounded-lg hover:bg-gray-100"
+          >
+            {lang === "id" ? "Batal" : "Cancel"}
+          </button>
         </div>
-    );
+      </div>
+    </div>
+  );
 }
 
-export function PublicMenu() {
+export default function PublicMenu() {
+  const { items = [], settings = {}, loading, updateItem } = useSupabase();
+  const { user } = useAuth();
+  // include toggleLang to switch language
+  const { t = {}, lang, toggleLang } = useLanguage();
   const navigate = useNavigate();
-  const { t, lang, toggleLang } = useLanguage();
-  const { isAuthenticated, isAdmin, user } = useAuth();
-  const {
-    items,
-    settings,
-    incrementViews,
-    customCategories = [],
-  } = useSupabase();
 
-  // build list categories dinamically (pastikan 'all' hanya ada satu)
-  const ALL_CATEGORIES = [
-    ...DEFAULT_CATEGORIES, // already contains "all"
-    // tambahkan customCategories tanpa duplikat
-    ...customCategories.filter((c) => !DEFAULT_CATEGORIES.includes(c)),
-  ];
-  const [cart, setCart] = useState([]);
-  const [search, setSearch] = useState("");
+  // UI State
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [showCart, setShowCart] = useState(false);
-  const [showOrderTypeModal, setShowOrderTypeModal] = useState(false);
-  const [customerName, setCustomerName] = useState("");
-  const [customerNote, setCustomerNote] = useState("");
-  const [tableNumber, setTableNumber] = useState("");
-  const [orderType, setOrderType] = useState("dine-in");
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [cart, setCart] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-    const [toast, setToast] = useState({ message: "", type: "" });
+  const [showOrderTypeModal, setShowOrderTypeModal] = useState(false);
+  const [selectedOrderType, setSelectedOrderType] = useState(null);
+  const [showStoreDetails, setShowStoreDetails] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  // Filter and group items
-  const filteredItems = items
-    .filter((item) => item.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => a.order - b.order);
+  // Helpful derived values
+  const categories = useMemo(() => {
+    const derived = [
+      "all",
+      ...DEFAULT_CATEGORIES.filter((c) =>
+        items.some((it) => it.category === c)
+      ),
+      ...Array.from(
+        new Set(
+          items
+            .map((i) => i.category)
+            .filter((c) => !DEFAULT_CATEGORIES.includes(c))
+        )
+      ),
+    ];
+    return derived;
+  }, [items]);
 
-  // Group by category for "all" view
-  const groupedItems = {};
-  if (selectedCategory === "all") {
-    // ambil daftar kategori kecuali 'all'
-    ALL_CATEGORIES.filter((c) => c !== "all").forEach((cat) => {
-      const categoryItems = filteredItems.filter(
-        (item) => item.category === cat
-      );
-      if (categoryItems.length > 0) {
-        groupedItems[cat] = categoryItems;
-      }
-    });
-  } else {
-    groupedItems[selectedCategory] = filteredItems.filter(
-      (item) => item.category === selectedCategory
-    );
-  }
-    const groupedItems = {};
-    if (selectedCategory === "all") {
-        CATEGORIES.slice(1).forEach((cat) => {
-            const categoryItems = filteredItems.filter(
-                (item) => item.category === cat
-            );
-            if (categoryItems.length > 0) {
-                groupedItems[cat] = categoryItems;
-            }
-        });
-    } else {
-        groupedItems[selectedCategory] = filteredItems.filter(
-            (item) => item.category === selectedCategory
-        );
-    }
+  const cartTotal = cart.reduce(
+    (sum, it) => sum + Number(it.price || 0) * (it.quantity || 0),
+    0
+  );
+  const cartItemsCount = cart.reduce((sum, it) => sum + (it.quantity || 0), 0);
 
-    const showToast = (message, type = "success") => {
-        setToast({ message, type });
-        setTimeout(() => setToast({ message: "", type: "" }), 3000);
-    };
+  // Toast helper
+  const showToast = (msg, type = "success") => {
+    setToast({ message: msg, type });
+    setTimeout(() => setToast(null), 2000);
+  };
 
+  // Add to cart (item, qty, note)
   const addToCart = (item, qty = 1, note = "") => {
-    incrementViews(item.id);
     setCart((prev) => {
-      const existing = prev.find((c) => c.id === item.id);
-      if (existing) {
-        return prev.map((c) =>
-          c.id === item.id
-            ? { ...c, qty: c.qty + qty, note: note || c.note }
-            : c
-        );
-      }
-      return [...prev, { ...item, qty, note }];
-    });
-        showToast(
-            lang === "id"
-                ? `${item.name} ditambahkan ke keranjang`
-                : `${item.name} added to cart`
-        );
-  };
-
-  const handleItemClick = (item) => {
-    setSelectedItem(item);
-  };
-
-  // FIXED: Auto remove when qty = 0
-  const updateQty = (id, delta) => {
-    setCart((prev) => {
-      return prev
-        .map((item) => {
-          if (item.id === id) {
-            const newQty = item.qty + delta;
-            return { ...item, qty: newQty };
-          }
-          return item;
-        })
-        .filter((item) => item.qty > 0); // Auto remove if qty = 0
-    });
-  };
-
-  // Direct set quantity (with auto remove)
-  const setItemQty = (id, qty) => {
-    if (qty <= 0) {
-      removeFromCart(id);
-    } else {
-      setCart((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, qty } : item))
+      const existingIndex = prev.findIndex(
+        (p) => p.id === item.id && (p.note || "") === (note || "")
       );
-    }
-  };
 
-  const updateItemNote = (id, note) => {
-    setCart((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, note } : item))
+      if (existingIndex >= 0) {
+        const copy = [...prev];
+        copy[existingIndex].quantity =
+          (copy[existingIndex].quantity || 0) + qty;
+        return copy;
+      }
+
+      return [...prev, { ...item, quantity: qty, note }];
+    });
+
+    showToast(
+      t?.addedToCart ||
+        (lang === "id" ? "Ditambahkan ke keranjang" : "Added to cart")
     );
   };
 
-  const removeFromCart = (id) =>
-    setCart((prev) => prev.filter((c) => c.id !== id));
-  const clearCart = () => {
-    setCart([]);
-    setShowCart(false);
-    setShowOrderForm(false);
+  const updateCartQty = (index, newQty) => {
+    if (newQty <= 0) return;
+    setCart((prev) =>
+      prev.map((it, i) => (i === index ? { ...it, quantity: newQty } : it))
+    );
   };
 
-  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-  const totalPrice = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const formatPrice = (p) => new Intl.NumberFormat("id-ID").format(p);
-
-  const getDateTime = () => {
-    return new Date().toLocaleDateString(lang === "id" ? "id-ID" : "en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const removeFromCart = (index) => {
+    setCart((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const orderTypeLabels = {
-    "dine-in": lang === "id" ? "Makan di Tempat" : "Dine In",
-    takeaway: lang === "id" ? "Bawa Pulang" : "Takeaway",
-    delivery: lang === "id" ? "Delivery" : "Delivery",
+  // When user clicks an item (opens detail & increases views)
+  const onItemClick = async (item) => {
+    setSelectedItem(item);
+    try {
+      await updateItem(item.id, { views: (item.views || 0) + 1 });
+    } catch (e) {
+      console.warn("update views failed", e);
+    }
   };
 
-  const orderTypeEmoji = {
-    "dine-in": String.fromCodePoint(0x1f37d),
-    takeaway: String.fromCodePoint(0x1f961),
-    delivery: String.fromCodePoint(0x1f69a),
+  // Order flow
+  const handleOrderTypeSelect = (type) => {
+    setSelectedOrderType(type);
+    setShowOrderTypeModal(false);
+    setIsCartOpen(true);
   };
-
-    const handleSelectOrderType = (type) => {
-        setOrderType(type);
-        setShowOrderTypeModal(false);
-        setShowCart(true);
-    };
 
   const generateWhatsAppMessage = () => {
-    const cart_emoji = String.fromCodePoint(0x1f6d2);
-    const store_emoji = String.fromCodePoint(0x1f3ea);
-    const calendar_emoji = String.fromCodePoint(0x1f4c5);
-    const person_emoji = String.fromCodePoint(0x1f464);
-    const memo_emoji = String.fromCodePoint(0x1f4dd);
-    const money_emoji = String.fromCodePoint(0x1f4b0);
-    const pin_emoji = String.fromCodePoint(0x1f4cc);
-    const sparkle_emoji = String.fromCodePoint(0x2728);
-    const chair_emoji = String.fromCodePoint(0x1fa91);
-    const check_emoji = String.fromCodePoint(0x2705);
-
-    const storeName = settings.storeName || "Store";
-    const dateTime = getDateTime();
-    const LINE = String.fromCodePoint(0x2500).repeat(20);
-
-    let msg = "";
-    msg += cart_emoji + " *PESANAN BARU*\n";
-    msg += LINE + "\n";
-    msg += store_emoji + " *" + storeName + "*\n";
-    msg += calendar_emoji + " " + dateTime + "\n";
-    msg += LINE + "\n\n";
-
-    if (customerName) {
-      msg += person_emoji + " *Nama:* " + customerName + "\n";
-    }
-    msg +=
-      orderTypeEmoji[orderType] + " *" + orderTypeLabels[orderType] + "*\n";
-
-    if (orderType === "dine-in" && tableNumber) {
-      msg += chair_emoji + " *No. Meja:* " + tableNumber + "\n";
-    }
-    msg += "\n";
-
-    msg += memo_emoji + " *DETAIL PESANAN:*\n";
-    msg += LINE + "\n\n";
-
-    cart.forEach((item, index) => {
-      const itemTotal = item.price * item.qty;
-      msg += index + 1 + ". *" + item.name + "*\n";
-      msg += "   " + item.qty + "x @ Rp " + formatPrice(item.price) + "\n";
-      msg += "   " + check_emoji + " Rp " + formatPrice(itemTotal) + "\n";
-      if (item.note) {
-        msg += "   " + memo_emoji + " _" + item.note + "_\n";
-      }
-      msg += "\n";
+    // Minimal fallback message if translation helpers are missing
+    const storeName = settings?.storeName || "Store";
+    const lines = [];
+    lines.push(`*Order from ${storeName}*`);
+    lines.push(`Type: ${selectedOrderType || "unknown"}`);
+    lines.push("");
+    cart.forEach((it, idx) => {
+      lines.push(
+        `${idx + 1}. ${it.name} x${it.quantity} - Rp ${Number(
+          it.price || 0
+        ).toLocaleString("id-ID")}`
+      );
+      if (it.note) lines.push(`   note: ${it.note}`);
     });
-
-    msg += LINE + "\n";
-    msg += money_emoji + " *TOTAL: Rp " + formatPrice(totalPrice) + "*\n";
-    msg += "(" + totalItems + " item)\n";
-    msg += LINE + "\n";
-
-    if (customerNote) {
-      msg += "\n" + pin_emoji + " *Catatan:*\n";
-      msg += customerNote + "\n";
-    }
-
-    msg += "\n" + sparkle_emoji + " ";
-    msg +=
-      lang === "id" ? "Terima kasih telah memesan!" : "Thank you for ordering!";
-    msg += "\n_via BookletKu_";
-
-    return msg;
+    lines.push("");
+    lines.push(`TOTAL: Rp ${Number(cartTotal || 0).toLocaleString("id-ID")}`);
+    return lines.join("\n");
   };
 
-    const handleCheckout = () => {
-        if (!orderType) {
-            setShowOrderTypeModal(true);
-        } else {
-            orderViaWhatsApp();
-        }
-    };
-
   const orderViaWhatsApp = () => {
+    const phone = (settings?.whatsappNumber || "").replace(/[^0-9]/g, "");
     const message = generateWhatsAppMessage();
-    const phone = (settings.whatsappNumber || "").replace(/[^0-9]/g, "");
+    if (!phone) {
+      showToast(
+        lang === "id"
+          ? "Nomor WhatsApp belum diset."
+          : "WhatsApp number not set.",
+        "error"
+      );
+      return;
+    }
     const url =
       "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
     window.open(url, "_blank");
   };
 
+  // Filtering items
+  const filteredGroups = useMemo(() => {
+    const q = (searchQuery || "").trim().toLowerCase();
+    const source =
+      selectedCategory === "all"
+        ? items
+        : items.filter((i) => i.category === selectedCategory);
+    const filtered = source.filter((i) =>
+      (i?.name || "").toLowerCase().includes(q)
+    );
+    // For layout A, we group by category only when "all"
+    if (selectedCategory === "all") {
+      const groups = {};
+      filtered.forEach((i) => {
+        const cat = i.category || "other";
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(i);
+      });
+      return Object.entries(groups).map(([category, items]) => ({
+        category,
+        items,
+      }));
+    }
+    return [{ category: selectedCategory, items: filtered }];
+  }, [items, searchQuery, selectedCategory]);
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <div className="min-h-screen bg-gray-50 pb-28">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#333fa1] to-[#000f89] text-white sticky top-0 z-40">
-        {" "}
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <Store size={20} />
-              </div>
-              <div>
-                <h1 className="font-bold">
-                  {settings.storeName || "BookletKu"}
-                </h1>
-                <p className="text-[#cccfe7] text-xs">{t.tagline}</p>
-              </div>
-            </div>
-    return (
-        <div className="min-h-screen bg-gray-50 pb-32">
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                onClose={() => setToast({ message: "", type: "" })}
-            />
-
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white sticky top-0 z-40">
-                <div className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                                <Store size={20} />
-                            </div>
-                            <div>
-                                <h1 className="font-bold">
-                                    {settings.storeName || "BookletKu"}
-                                </h1>
-                                <p className="text-green-100 text-xs">
-                                    {t.tagline}
-                                </p>
-                            </div>
-                        </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleLang}
-                className="p-2 hover:bg-white/20 rounded-lg"
-              >
-                <Globe size={18} />
-              </button>
-
-              <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="p-2 hover:bg-white/20 rounded-lg"
-                >
-                  <User size={18} />
-                </button>
-                {showUserMenu && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowUserMenu(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border z-50 overflow-hidden">
-                      {isAuthenticated ? (
-                        <>
-                          <div className="p-3 border-b bg-gray-50">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {user?.email}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {isAdmin ? "Admin" : "User"}
-                            </p>
-                          </div>
-                          {isAdmin && (
-                            <button
-                              onClick={() => {
-                                navigate("/admin");
-                                setShowUserMenu(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                            >
-                              <Settings size={16} />
-                              {lang === "id"
-                                ? "Dashboard Admin"
-                                : "Admin Dashboard"}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              navigate("/profile");
-                              setShowUserMenu(false);
-                            }}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                          >
-                            <User size={16} />
-                            {lang === "id" ? "Profil Saya" : "My Profile"}
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            navigate("/login");
-                            setShowUserMenu(false);
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          <LogIn size={16} />
-                          {lang === "id"
-                            ? "Masuk / Daftar"
-                            : "Login / Register"}
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-
-                            {cart.length > 0 && (
-                                <button
-                                    onClick={() => setShowOrderTypeModal(true)}
-                                    className="relative p-2 bg-white/20 rounded-lg"
-                                >
-                                    <ShoppingCart size={18} />
-                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                                        {totalItems}
-                                    </span>
-                                </button>
-                            )}
-                        </div>
-                    </div>
-              {cart.length > 0 && (
-                <button
-                  onClick={() => setShowCart(true)}
-                  className="relative p-2 bg-white/20 rounded-lg"
-                >
-                  <ShoppingCart size={18} />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                    {totalItems}
-                  </span>
-                </button>
-              )}
-            </div>
+      <header className="bg-white shadow-sm sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">
+              {settings?.storeName || "BookletKu"}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {settings?.storeLocation || ""}
+            </p>
           </div>
 
-          <div className="relative">
-            <Search
-              size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t.searchPlaceholder}
-              className="w-full pl-10 pr-4 py-2.5 bg-white text-gray-900 rounded-xl outline-none"
-            />
-          </div>
-        </div>
-        <div className="px-4 pb-3 overflow-x-auto">
-          <div className="flex gap-2">
-            {ALL_CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-medium transition-all ${
-                  selectedCategory === cat
-                    ? "bg-white text-[#666fb8]"
-                    : "bg-white/20 hover:bg-white/30"
+          <div className="flex items-center gap-3">
+            {/* Language toggle (Globe) */}
+            <button
+              onClick={() => toggleLang && toggleLang()}
+              title={lang === "id" ? "Ganti bahasa" : "Toggle language"}
+              className="p-2 rounded-md hover:bg-gray-100"
+              aria-label="Toggle language"
+            >
+              <Globe size={18} className="text-gray-600" />
+            </button>
+
+            {/* Simple 'i' info icon */}
+            <button
+              onClick={() => setShowStoreDetails((s) => !s)}
+              title={lang === "id" ? "Info toko" : "Store info"}
+              className="p-2 rounded-md hover:bg-gray-100"
+              aria-label="Store info"
+            >
+              <span
+                className={`w-7 h-7 rounded-full border flex items-center justify-center font-semibold text-sm ${
+                  showStoreDetails
+                    ? "bg-[#666fb8] text-white border-[#666fb8]"
+                    : "text-[#666fb8] border-gray-200"
                 }`}
               >
-                {cat === "all"
-                  ? t.allCategories
-                  : t[cat] || cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </button>
-            ))}
+                i
+              </span>
+            </button>
+
+            {/* Login/Profile (kept as requested) */}
+            <button
+              onClick={() => navigate("/login")}
+              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50"
+            >
+              <UserIconFallback />
+              <span className="text-sm">
+                {user ? t?.profile || "Profile" : t?.login || "Login"}
+              </span>
+            </button>
           </div>
         </div>
-      </div>
-      {/* Menu Grid - GROUPED BY CATEGORY */}
-      <div className="p-4 space-y-6">
-        {Object.keys(groupedItems).length === 0 ? (
-          <div className="text-center py-16">
-            <Store size={48} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-500">{t.noResults || t.noItems}</p>
+
+        {showStoreDetails && (
+          <div className="bg-white border-t">
+            <div className="max-w-5xl mx-auto px-4 py-3 text-sm text-gray-600">
+              <div>
+                <strong>{t?.location || "Location"}:</strong>{" "}
+                {settings?.storeLocation || "-"}
+              </div>
+              <div>
+                <strong>{t?.operatingHours || "Hours"}:</strong>{" "}
+                {settings?.operatingHours || "-"}
+              </div>
+              <div>
+                <strong>WhatsApp:</strong>{" "}
+                {settings?.whatsappNumber ? `+${settings.whatsappNumber}` : "-"}
+              </div>
+            </div>
           </div>
-        ) : (
-          Object.entries(groupedItems).map(([category, categoryItems]) => (
-            <div key={category}>
-              {/* Category Header */}
-              <div className="flex items-center gap-3 mb-3">
-                <h2 className="text-lg font-bold text-gray-900">
-                  {t[category] || category}
-                </h2>
-                <div className="flex-1 h-px bg-gray-200"></div>
-                <span className="text-sm text-gray-500">
-                  {categoryItems.length} item
-                </span>
-              </div>
-
-              {/* Items Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {categoryItems.map((item) => (
-                  <MenuItemCard
-                    key={item.id}
-                    item={item}
-                    onClick={() => handleItemClick(item)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))
         )}
+      </header>
+
+      {/* Search */}
+      <div className="max-w-5xl mx-auto px-4 pt-5">
+        <input
+          type="text"
+          placeholder={
+            t?.searchPlaceholder ||
+            (lang === "id" ? "Cari menu..." : "Search menu...")
+          }
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-[#666fb8] outline-none"
+        />
       </div>
-      <ItemDetailModal
-        item={selectedItem}
-        isOpen={!!selectedItem}
-        onClose={() => setSelectedItem(null)}
-        onAddToCart={addToCart}
-      />
-      {cart.length > 0 && !showCart && (
-        <button
-          onClick={() => setShowCart(true)}
-          className="fixed bottom-6 right-6 bg-[#666fb8]  text-white p-4 rounded-full shadow-lg hover:bg-[#666fb8]  z-30"
-        >
-          <ShoppingCart size={24} />
-          <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">
-            {totalItems}
-          </span>
-        </button>
-      )}
-      {/* Cart Panel */}
-      {showCart && cart.length > 0 && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50"
-          onClick={() => setShowCart(false)}
-        >
-          <div
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+
+      {/* Categories */}
+      <div className="max-w-5xl mx-auto px-4 py-4 overflow-x-auto flex gap-3 no-scrollbar">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition ${
+              selectedCategory === cat
+                ? "bg-[#666fb8] text-white"
+                : "bg-gray-200 text-gray-700"
+            }`}
           >
-            <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                <ShoppingCart size={20} className="text-[#666fb8]" />
-                {lang === "id" ? "Keranjang" : "Cart"} ({totalItems})
-              </h3>
-              <button
-                onClick={() => setShowCart(false)}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <X size={20} />
-              </button>
-            </div>
+            {t?.categories?.[cat] || capitalize(cat)}
+          </button>
+        ))}
+      </div>
 
-            <div className="overflow-y-auto max-h-[35vh] p-4 space-y-3">
-              {cart.map((item) => (
-                <div key={item.id} className="bg-gray-50 rounded-xl p-3">
-                  <div className="flex gap-3">
-                    {item.photo && (
-                      <img
-                        src={item.photo}
-                        alt=""
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">
-                        {item.name}
-                      </h4>
-                      <p className="text-[#666fb8] font-bold text-sm">
-                        Rp {formatPrice(item.price)}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <button
-                          onClick={() => updateQty(item.id, -1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white border rounded"
-                        >
-                          <Minus size={10} />
-                        </button>
+      {/* Content */}
+      <main className="max-w-5xl mx-auto px-4">
+        {loading && (
+          <p className="text-center py-10">
+            {t?.loading || (lang === "id" ? "Memuat..." : "Loading...")}
+          </p>
+        )}
 
-                        {/* Editable quantity input */}
-                        <input
-                          type="number"
-                          value={item.qty}
-                          onChange={(e) =>
-                            setItemQty(item.id, parseInt(e.target.value) || 0)
-                          }
-                          className="w-12 text-center text-sm font-medium border rounded py-0.5 outline-none focus:ring-1 focus:ring-[#666fb8]"
-                          min="0"
-                        />
+        {filteredGroups.length === 0 && !loading && (
+          <div className="text-center py-16 text-gray-500">
+            {t?.noItems || (lang === "id" ? "Belum ada menu" : "No items yet")}
+          </div>
+        )}
 
-                        <button
-                          onClick={() => updateQty(item.id, 1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white border rounded"
-                        >
-                          <Plus size={10} />
-                        </button>
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="ml-auto p-1 text-red-500"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <input
-                    type="text"
-                    value={item.note || ""}
-                    onChange={(e) => updateItemNote(item.id, e.target.value)}
-                    placeholder={lang === "id" ? "Catatan..." : "Note..."}
-                    className="w-full mt-2 px-2 py-1 text-xs border rounded-lg outline-none focus:ring-1 focus:ring-[#666fb8]"
-                  />
-                </div>
+        {filteredGroups.map((group) => (
+          <section key={group.category} className="mb-8">
+            <h2 className="text-xl font-semibold mb-4 capitalize">
+              {t?.categories?.[group.category] || capitalize(group.category)}
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {group.items.map((item) => (
+                <MenuItemCardLarge
+                  key={item.id}
+                  item={item}
+                  onClick={() => onItemClick(item)}
+                />
               ))}
             </div>
+          </section>
+        ))}
+      </main>
 
-            {showOrderForm && (
-              <div className="border-t p-4 bg-gray-50 space-y-3">
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder={lang === "id" ? "Nama Anda" : "Your Name"}
-                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-[#666fb8]"
-                />
-                <div className="flex gap-2">
-                  {Object.entries(orderTypeLabels).map(([k, v]) => (
-                    <button
-                      key={k}
-                      onClick={() => setOrderType(k)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-medium ${
-                        orderType === k
-                          ? "bg-[#666fb8]  text-white"
-                          : "bg-white border"
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-                {orderType === "dine-in" && (
-                  <input
-                    type="text"
-                    value={tableNumber}
-                    onChange={(e) => setTableNumber(e.target.value)}
-                    placeholder={lang === "id" ? "No. Meja" : "Table No."}
-                    className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-[#666fb8]"
-                  />
-                )}
-                <textarea
-                  value={customerNote}
-                  onChange={(e) => setCustomerNote(e.target.value)}
-                  placeholder={
-                    lang === "id"
-                      ? "Catatan tambahan..."
-                      : "Additional notes..."
-                  }
-                  rows={2}
-                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-[#666fb8] resize-none"
-                />
+      {/* Floating Cart Button */}
+      {cart.length > 0 && (
+        <button
+          onClick={() => setIsCartOpen(true)}
+          className="fixed bottom-6 right-6 z-40 px-5 py-3 rounded-full shadow-lg bg-[#666fb8] text-white font-semibold flex items-center gap-3"
+          aria-label="Open cart"
+        >
+          🛒 {t?.cart || (lang === "id" ? "Keranjang" : "Cart")} (
+          {cartItemsCount})
+        </button>
+      )}
+
+      {/* Item Detail Modal */}
+      {selectedItem && (
+        <ItemDetailModal
+          item={selectedItem}
+          isOpen={!!selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onAdd={(item, qty, note) => addToCart(item, qty, note)}
+        />
+      )}
+
+      {/* Order Type Modal */}
+      {showOrderTypeModal && (
+        <OrderTypeModal
+          isOpen={showOrderTypeModal}
+          onSelect={handleOrderTypeSelect}
+          onClose={() => setShowOrderTypeModal(false)}
+        />
+      )}
+
+      {/* Cart Panel */}
+      {isCartOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex justify-end">
+          <div className="w-full sm:w-[420px] bg-white h-full shadow-xl flex flex-col">
+            <header className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">
+                  {t?.yourCart ||
+                    (lang === "id" ? "Keranjang Anda" : "Your Cart")}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {cartItemsCount}{" "}
+                  {t?.items || (lang === "id" ? "item" : "items")}
+                </p>
               </div>
-            )}
-                        <div className="border-t p-4 bg-gray-50 space-y-3">
-                            <input
-                                type="text"
-                                value={customerName}
-                                onChange={(e) =>
-                                    setCustomerName(e.target.value)
-                                }
-                                placeholder={
-                                    lang === "id" ? "Nama Anda" : "Your Name"
-                                }
-                                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500"
-                            />
-                            {orderType === "dine-in" && (
-                                <input
-                                    type="text"
-                                    value={tableNumber}
-                                    onChange={(e) =>
-                                        setTableNumber(e.target.value)
-                                    }
-                                    placeholder={
-                                        lang === "id" ? "No. Meja" : "Table No."
-                                    }
-                                    className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500"
-                                />
-                            )}
-                            <textarea
-                                value={customerNote}
-                                onChange={(e) =>
-                                    setCustomerNote(e.target.value)
-                                }
-                                placeholder={
-                                    lang === "id"
-                                        ? "Catatan tambahan..."
-                                        : "Additional notes..."
-                                }
-                                rows={2}
-                                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-green-500 resize-none"
-                            />
-                        </div>
-
-            <div className="sticky bottom-0 bg-white border-t p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500">Total</p>
-                  <p className="text-xl font-bold">
-                    Rp {formatPrice(totalPrice)}
-                  </p>
-                </div>
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setShowOrderForm(!showOrderForm)}
-                  className="text-xs text-[#666fb8] flex items-center gap-1"
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    setShowOrderTypeModal(true);
+                  }}
+                  className="px-3 py-1 rounded-lg bg-[#eaf0ff] text-[#666fb8] text-sm"
                 >
-                  {showOrderForm ? (
-                    <ChevronDown size={14} />
-                  ) : (
-                    <ChevronUp size={14} />
-                  )}{" "}
-                  Detail
+                  {t?.chooseType || (lang === "id" ? "Tipe" : "Type")}
+                </button>
+
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="text-gray-500 text-lg p-1"
+                >
+                  <X size={20} />
                 </button>
               </div>
-              <button
-                onClick={orderViaWhatsApp}
-                className="w-full flex items-center justify-center gap-2 bg-[#666fb8]  text-white py-3 rounded-xl font-medium hover:bg-[#666fb8] "
-              >
-                <MessageCircle size={20} />
-                {lang === "id" ? "Pesan via WhatsApp" : "Order via WhatsApp"}
-                <Send size={16} />
-              </button>
-              <button
-                onClick={clearCart}
-                className="w-full py-2 text-xs text-red-500 hover:bg-red-50 rounded-lg"
-              >
-                {lang === "id" ? "Kosongkan Keranjang" : "Clear Cart"}
-              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {cart.map((it, idx) => (
+                <div key={idx} className="flex gap-3 pb-3 border-b">
+                  <img
+                    src={it.photo || "/placeholder.jpg"}
+                    alt={it.name}
+                    className="w-20 h-20 rounded-lg object-cover"
+                    onError={(e) => (e.currentTarget.src = "/placeholder.jpg")}
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between">
+                      <h4 className="font-medium">{it.name}</h4>
+                      <div className="text-sm text-gray-600">
+                        Rp {Number(it.price || 0).toLocaleString("id-ID")}
+                      </div>
+                    </div>
+
+                    {it.note && (
+                      <p className="text-xs text-gray-400 mt-1">📝 {it.note}</p>
+                    )}
+
+                    <div className="flex items-center gap-2 mt-3">
+                      <button
+                        onClick={() =>
+                          updateCartQty(idx, (it.quantity || 0) - 1)
+                        }
+                        className="px-2 py-1 bg-gray-200 rounded"
+                      >
+                        -
+                      </button>
+                      <span className="px-2">{it.quantity}</span>
+                      <button
+                        onClick={() =>
+                          updateCartQty(idx, (it.quantity || 0) + 1)
+                        }
+                        className="px-2 py-1 bg-gray-200 rounded"
+                      >
+                        +
+                      </button>
+                      <button
+                        onClick={() => removeFromCart(idx)}
+                        className="ml-auto text-red-500"
+                      >
+                        ✖
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {cart.length === 0 && (
+                <p className="text-center text-gray-500 py-8">
+                  {t?.noItemsInCart ||
+                    (lang === "id" ? "Keranjang kosong" : "Cart is empty")}
+                </p>
+              )}
             </div>
+
+            <footer className="p-4 border-t">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-sm text-gray-500">
+                    {t?.total || (lang === "id" ? "Total" : "Total")}
+                  </div>
+                  <div className="text-xl font-bold">
+                    Rp {Number(cartTotal || 0).toLocaleString("id-ID")}
+                  </div>
+                </div>
+
+                <div className="w-40">
+                  <button
+                    onClick={() => {
+                      if (!selectedOrderType) {
+                        setShowOrderTypeModal(true);
+                        setIsCartOpen(false);
+                      } else {
+                        orderViaWhatsApp();
+                      }
+                    }}
+                    className="w-full py-3 rounded-lg bg-[#666fb8] text-white font-semibold"
+                  >
+                    {t?.orderNow ||
+                      (lang === "id" ? "Pesan Sekarang" : "Order Now")}
+                  </button>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {t?.viaWhatsApp ||
+                      (lang === "id" ? "Via WhatsApp" : "Via WhatsApp")}
+                  </p>
+                </div>
+              </div>
+            </footer>
           </div>
         </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={2000}
+        />
       )}
     </div>
   );
-                        <div className="sticky bottom-0 bg-white border-t p-4 space-y-3">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs text-gray-500">
-                                        Total
-                                    </p>
-                                    <p className="text-xl font-bold">
-                                        Rp {formatPrice(totalPrice)}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setShowOrderTypeModal(true)}
-                                    className="text-xs text-green-600 hover:underline"
-                                >
-                                    {lang === "id"
-                                        ? "Ubah Tipe"
-                                        : "Change Type"}
-                                </button>
-                            </div>
-                            <button
-                                onClick={orderViaWhatsApp}
-                                className="w-full flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600"
-                            >
-                                <MessageCircle size={20} />
-                                {lang === "id"
-                                    ? "Pesan via WhatsApp"
-                                    : "Order via WhatsApp"}
-                                <Send size={16} />
-                            </button>
-                            <button
-                                onClick={clearCart}
-                                className="w-full py-2 text-xs text-red-500 hover:bg-red-50 rounded-lg"
-                            >
-                                {lang === "id"
-                                    ? "Kosongkan Keranjang"
-                                    : "Clear Cart"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
 }
 
-export default PublicMenu;
+/* ----------------- Helpers ----------------- */
+
+function capitalize(s) {
+  if (!s) return "";
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// A tiny fallback user icon (keeps imports minimal in this file)
+function UserIconFallback() {
+  return (
+    <div className="w-6 h-6 rounded-full bg-[#666fb8] text-white flex items-center justify-center text-xs font-bold">
+      U
+    </div>
+  );
+}
