@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Mail,
@@ -18,7 +18,7 @@ import { supabase } from "../config/supabase";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { signIn, signUp, userRole } = useAuth();
+  const { signIn, signUp, userRole, isAuthenticated, user } = useAuth();
   const { t, lang } = useLanguage();
   const { template } = useTemplate();
   const colors = getTemplateColors(template);
@@ -35,6 +35,17 @@ export function LoginPage() {
     role: "user",
   });
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (userRole === "admin") {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate("/menu", { replace: true });
+      }
+    }
+  }, [isAuthenticated, userRole, user, navigate]);
+
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setError("");
@@ -50,16 +61,28 @@ export function LoginPage() {
         const { data, error } = await signIn(form.email, form.password);
         if (error) throw error;
 
-        const { data: profile } = await supabase
+        // Wait a bit for auth state to update
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Fetch user role
+        const { data: profile, error: profileError } = await supabase
           .from("user_profiles")
           .select("role")
           .eq("id", data.user.id)
           .single();
 
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
+          // Default to menu if profile fetch fails
+          navigate("/menu", { replace: true });
+          return;
+        }
+
+        // Redirect based on role
         if (profile?.role === "admin") {
-          navigate("/admin");
+          navigate("/admin", { replace: true });
         } else {
-          navigate("/");
+          navigate("/menu", { replace: true });
         }
 
         return;
@@ -98,13 +121,13 @@ export function LoginPage() {
       className={`min-h-screen bg-gradient-to-br ${colors.gradient} flex items-center justify-center p-4`}
     >
       <div className="w-full max-w-md">
-        {/* Back to menu */}
+        {/* Link to Public Menu */}
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/menu")}
           className="flex items-center gap-2 text-white/80 hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft size={20} />
-          {lang === "id" ? "Kembali ke Menu" : "Back to Menu"}
+          {lang === "id" ? "Kembali" : "Back"}
         </button>
 
         {/* Card */}

@@ -4,7 +4,6 @@ import {
   Route,
   Navigate,
   useParams,
-  useLocation,
 } from "react-router-dom";
 
 import { useAuth } from "./contexts/AuthContext";
@@ -23,13 +22,13 @@ function AdminRoute({ children }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
       </div>
     );
   }
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!isAuthenticated) return <Navigate to="/" replace />;
+  if (!isAdmin) return <Navigate to="/menu" replace />;
 
   return children;
 }
@@ -41,36 +40,27 @@ function UserRoute({ children }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
       </div>
     );
   }
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/" replace />;
 
   return children;
-}
-
-// Redirect for /menu/:slug → /:slug
-function RedirectMenuSlug() {
-  const { slug } = useParams();
-  return <Navigate to={`/${slug}`} replace />;
 }
 
 function App() {
   return (
     <Routes>
+      {/* Root - Login Page */}
+      <Route path="/" element={<LoginPage />} />
+
       {/* Public Menu */}
-      <Route path="/" element={<PublicMenu />} />
+      <Route path="/menu" element={<PublicMenu />} />
+      <Route path="/menu/:slug" element={<PublicMenu />} />
 
-      {/* Login */}
-      <Route path="/login" element={<LoginPage />} />
-
-      {/* Auto-redirect */}
-      <Route path="/menu" element={<Navigate to="/" replace />} />
-      <Route path="/menu/:slug" element={<Navigate to="/" replace />} />
-
-      {/* Admin */}
+      {/* Admin Dashboard - Protected */}
       <Route
         path="/admin/*"
         element={
@@ -80,7 +70,7 @@ function App() {
         }
       />
 
-      {/* User Profile */}
+      {/* User Profile - Protected */}
       <Route
         path="/profile"
         element={

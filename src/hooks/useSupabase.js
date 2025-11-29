@@ -46,7 +46,7 @@ export function useSupabase() {
     }
   }, []);
 
-  // Fetch Settings
+  // Fetch Settings from Database
   const fetchSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -57,15 +57,20 @@ export function useSupabase() {
 
       if (error) {
         if (error.code === "PGRST116") {
-          const { data: newStore } = await supabase
+          // Store doesn't exist, create it
+          const { data: newStore, error: insertError } = await supabase
             .from("stores")
             .insert({
               id: DEFAULT_STORE_ID,
-              name: "My Store",
+              name: "Toko Saya",
+              location: "",
+              operating_hours: "",
               whatsapp_number: "628123456789",
             })
             .select()
             .single();
+
+          if (insertError) throw insertError;
 
           setSettingsState({
             storeName: newStore.name,
@@ -73,20 +78,27 @@ export function useSupabase() {
             operatingHours: newStore.operating_hours || "",
             whatsappNumber: newStore.whatsapp_number,
           });
-
           return;
         }
         throw error;
       }
 
+      // Set settings from database
       setSettingsState({
-        storeName: data.name,
+        storeName: data.name || "",
         storeLocation: data.location || "",
         operatingHours: data.operating_hours || "",
-        whatsappNumber: data.whatsapp_number,
+        whatsappNumber: data.whatsapp_number || "",
       });
     } catch (err) {
       console.error("❌ Fetch settings:", err);
+      // Set default values on error
+      setSettingsState({
+        storeName: "Toko Saya",
+        storeLocation: "",
+        operatingHours: "",
+        whatsappNumber: "628123456789",
+      });
     }
   }, []);
 
@@ -95,6 +107,23 @@ export function useSupabase() {
     const defaultCategories = ["food", "drink", "snack", "dessert", "other"];
     const allCats = [...new Set(items.map((i) => i.category))];
     setCustomCategories(allCats.filter((c) => !defaultCategories.includes(c)));
+  };
+
+  // Add Custom Category
+  const addCustomCategory = (category) => {
+    if (!category || typeof category !== "string") return false;
+    
+    const trimmed = category.trim().toLowerCase();
+    if (trimmed.length < 2 || trimmed.length > 20) return false;
+    
+    const defaultCategories = ["food", "drink", "snack", "dessert", "other"];
+    const allCategories = [...defaultCategories, ...customCategories];
+    
+    if (allCategories.includes(trimmed)) return false;
+    if (!/^[a-z0-9\s-]+$/.test(trimmed)) return false;
+    
+    setCustomCategories((prev) => [...prev, trimmed]);
+    return true;
   };
 
   // Initial Load + Realtime
@@ -107,6 +136,7 @@ export function useSupabase() {
 
     init();
 
+    // Realtime subscription for items
     const itemsSub = supabase
       .channel("menu_items_changes")
       .on(
@@ -116,6 +146,7 @@ export function useSupabase() {
       )
       .subscribe();
 
+    // Realtime subscription for settings
     const settingsSub = supabase
       .channel("stores_changes")
       .on(
@@ -162,16 +193,21 @@ export function useSupabase() {
   // Update Item
   const updateItem = async (id, itemData) => {
     try {
+      const updateData = {
+        updated_at: new Date().toISOString(),
+      };
+
+      // Only include fields that are provided
+      if (itemData.name !== undefined) updateData.name = itemData.name;
+      if (itemData.price !== undefined) updateData.price = itemData.price;
+      if (itemData.description !== undefined) updateData.description = itemData.description;
+      if (itemData.category !== undefined) updateData.category = itemData.category;
+      if (itemData.photo !== undefined) updateData.photo = itemData.photo;
+      if (itemData.views !== undefined) updateData.views = itemData.views;
+
       const { error } = await supabase
         .from("menu_items")
-        .update({
-          name: itemData.name,
-          price: itemData.price,
-          description: itemData.description || "",
-          category: itemData.category,
-          photo: itemData.photo,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", id);
 
       if (error) throw error;
@@ -221,12 +257,10 @@ export function useSupabase() {
 
       if (error) throw error;
 
-      // getPublicUrl returns an object with data.publicUrl
       const { data: urlData } = supabase.storage
         .from(STORAGE_BUCKET)
         .getPublicUrl(fileName);
 
-      // Ensure we return an object with `.url` to match ItemForm's expectation of result.url
       return { url: urlData?.publicUrl || "" };
     } catch (err) {
       console.error("❌ Upload photo:", err);
@@ -234,20 +268,29 @@ export function useSupabase() {
     }
   };
 
-  // Save Store Settings
-  const setSettings = async (s) => {
+  // Save Store Settings to Database
+  const setSettings = async (newSettings) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from("stores")
         .update({
-          name: s.storeName,
-          location: s.storeLocation,
-          operating_hours: s.operatingHours,
-          whatsapp_number: s.whatsappNumber,
+          name: newSettings.storeName,
+          location: newSettings.storeLocation,
+          operating_hours: newSettings.operatingHours,
+          whatsapp_number: newSettings.whatsappNumber,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", DEFAULT_STORE_ID);
 
-      setSettingsState(s);
+      if (error) throw error;
+
+      // Update local state after successful save
+      setSettingsState(newSettings);
+      
+      // Refresh from database to ensure sync
+      await fetchSettings();
+      
+      return { success: true };
     } catch (err) {
       console.error("❌ Save settings:", err);
       throw err;
@@ -267,6 +310,7 @@ export function useSupabase() {
 
     uploadPhoto,
     setSettings,
+    addCustomCategory,
     refetch: fetchItems,
   };
 }
