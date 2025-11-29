@@ -36,15 +36,16 @@ export function LoginPage() {
   });
 
   // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      if (userRole === "admin") {
-        navigate("/admin", { replace: true });
-      } else {
-        navigate("/menu", { replace: true });
-      }
-    }
-  }, [isAuthenticated, userRole, user, navigate]);
+ useEffect(() => {
+  // Wait until userRole is loaded
+  if (!isAuthenticated || userRole === null) return;
+
+  if (userRole === "admin") {
+    navigate("/admin", { replace: true });
+  } else {
+    navigate("/menu", { replace: true });
+  }
+}, [isAuthenticated, userRole, user, navigate]);;
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
