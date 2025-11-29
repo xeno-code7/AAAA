@@ -12,6 +12,8 @@ import {
   Award,
 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useTemplate } from "../contexts/TemplateContext";
+import { getTemplateColors } from "./TemplateSettings";
 
 export function Badge({ children, variant = "default" }) {
   const variants = {
@@ -107,7 +109,7 @@ export function MenuCard({ item, onEdit, onDelete, isAdmin = true }) {
         <h3 className="font-semibold text-gray-900 text-xs truncate">
           {item.name}
         </h3>
-        <p className="text-[#666fb8] font-bold text-sm">
+        <p className=" style={{ color: colors.primary }} font-bold text-sm">
           Rp {formatPrice(item.price)}
         </p>
         <div className="flex items-center justify-between mt-1 pt-1 border-t">
@@ -176,7 +178,7 @@ export function MenuCardSimple({ item, onClick }) {
         <h3 className="font-medium text-gray-900 text-xs truncate">
           {item.name}
         </h3>
-        <p className="text-[#666fb8] font-bold text-sm">
+        <p className=" style={{ color: colors.primary }} font-bold text-sm">
           Rp {formatPrice(item.price)}
         </p>
       </div>

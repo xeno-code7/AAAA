@@ -19,7 +19,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useSupabase } from "../hooks/useSupabase";
 import Toast from "./Toast";
-
+import { useTemplate } from "../contexts/TemplateContext";
+import { getTemplateColors } from "./TemplateSettings";
 /*
   PublicMenu - Blue themed + Dine-in / Takeaway / Delivery
   Layout: Large image cards (A)
@@ -103,7 +104,7 @@ function MenuItemCardLarge({ item, onClick }) {
           </p>
         )}
         <div className="flex items-center justify-between mt-3">
-          <p className="text-[#666fb8] font-bold text-lg">
+          <p className=" style={{ color: colors.primary }} font-bold text-lg">
             Rp {formatPrice(item?.price)}
           </p>
           <div className="text-sm text-gray-500">{item?.category}</div>
@@ -156,7 +157,7 @@ function ItemDetailModal({ item, isOpen, onClose, onAdd }) {
 
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full"
+            className={`${colors.button} text-white px-4 py-2 rounded-lg`}
             aria-label="Close"
           >
             <X size={18} />
@@ -173,7 +174,7 @@ function ItemDetailModal({ item, isOpen, onClose, onAdd }) {
 
         <div className="p-5">
           <h2 className="text-xl font-bold text-gray-900">{item.name}</h2>
-          <p className="text-2xl font-bold text-[#666fb8] mt-2">
+          <p className="text-2xl font-bold  style={{ color: colors.primary }} mt-2">
             Rp {formatPrice(item.price)}
           </p>
 
@@ -191,7 +192,7 @@ function ItemDetailModal({ item, isOpen, onClose, onAdd }) {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-10 h-10 flex items-center justify-center border rounded-lg hover:border-[#666fb8]"
+                className={`${colors.button} text-white px-4 py-2 rounded-lg`}
                 aria-label="Decrease"
               >
                 <Minus size={18} />
@@ -230,7 +231,7 @@ function ItemDetailModal({ item, isOpen, onClose, onAdd }) {
 
           <button
             onClick={handleAdd}
-            className="w-full mt-5 flex items-center justify-center gap-2 bg-[#666fb8] text-white py-3 rounded-xl font-semibold"
+            className={`${colors.button} text-white px-4 py-2 rounded-lg`}
           >
             <ShoppingCart size={18} />
             {lang === "id" ? "Tambah ke Keranjang" : "Add to Cart"} - Rp{" "}
@@ -282,7 +283,7 @@ function OrderTypeModal({ isOpen, onClose, onSelect }) {
       >
         <div className="p-6 text-center">
           <div className="w-14 h-14 bg-[#e9eefc] rounded-full flex items-center justify-center mx-auto mb-4">
-            <ShoppingCart size={26} className="text-[#666fb8]" />
+            <ShoppingCart size={26} style={{ color: colors.primary }} />
           </div>
           <h3 className="text-2xl font-bold mb-1">
             {lang === "id" ? "Pilih Tipe Pesanan" : "Select Order Type"}
@@ -300,7 +301,7 @@ function OrderTypeModal({ isOpen, onClose, onSelect }) {
                 onClick={() => {
                   if (onSelect) onSelect(type.id);
                 }}
-                className="w-full p-3 rounded-xl border hover:shadow-md transition-all flex items-center gap-4"
+                className={`${colors.button} text-white px-4 py-2 rounded-lg`}
               >
                 <div
                   className={`w-12 h-12 rounded-lg bg-gradient-to-br ${type.color} flex items-center justify-center`}
@@ -320,7 +321,7 @@ function OrderTypeModal({ isOpen, onClose, onSelect }) {
 
           <button
             onClick={onClose}
-            className="mt-4 text-sm text-gray-600 w-full py-2.5 rounded-lg hover:bg-gray-100"
+            className={`${colors.button} text-white px-4 py-2 rounded-lg`}
           >
             {lang === "id" ? "Batal" : "Cancel"}
           </button>
@@ -336,6 +337,8 @@ export default function PublicMenu() {
   // include toggleLang to switch language
   const { t = {}, lang, toggleLang } = useLanguage();
   const navigate = useNavigate();
+  const { template } = useTemplate();
+  const colors = getTemplateColors(template);
 
   // UI State
   const [searchQuery, setSearchQuery] = useState("");
@@ -494,6 +497,7 @@ export default function PublicMenu() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
+      {" "}
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -511,7 +515,7 @@ export default function PublicMenu() {
             <button
               onClick={() => toggleLang && toggleLang()}
               title={lang === "id" ? "Ganti bahasa" : "Toggle language"}
-              className="p-2 rounded-md hover:bg-gray-100"
+              className={`${colors.button} text-white px-4 py-2 rounded-lg`}
               aria-label="Toggle language"
             >
               <Globe size={18} className="text-gray-600" />
@@ -527,8 +531,8 @@ export default function PublicMenu() {
               <span
                 className={`w-7 h-7 rounded-full border flex items-center justify-center font-semibold text-sm ${
                   showStoreDetails
-                    ? "bg-[#666fb8] text-white border-[#666fb8]"
-                    : "text-[#666fb8] border-gray-200"
+                    ? "${colors.button} text-white border-${colors.button}"
+                    : "text-${colors.button} border-gray-200"
                 }`}
               >
                 i
@@ -567,7 +571,6 @@ export default function PublicMenu() {
           </div>
         )}
       </header>
-
       {/* Search */}
       <div className="max-w-5xl mx-auto px-4 pt-5">
         <input
@@ -581,7 +584,6 @@ export default function PublicMenu() {
           className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-[#666fb8] outline-none"
         />
       </div>
-
       {/* Categories */}
       <div className="max-w-5xl mx-auto px-4 py-4 overflow-x-auto flex gap-3 no-scrollbar">
         {categories.map((cat) => (
@@ -590,7 +592,7 @@ export default function PublicMenu() {
             onClick={() => setSelectedCategory(cat)}
             className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition ${
               selectedCategory === cat
-                ? "bg-[#666fb8] text-white"
+                ? "${colors.button} text-white"
                 : "bg-gray-200 text-gray-700"
             }`}
           >
@@ -598,7 +600,6 @@ export default function PublicMenu() {
           </button>
         ))}
       </div>
-
       {/* Content */}
       <main className="max-w-5xl mx-auto px-4">
         {loading && (
@@ -631,19 +632,17 @@ export default function PublicMenu() {
           </section>
         ))}
       </main>
-
       {/* Floating Cart Button */}
       {cart.length > 0 && (
         <button
           onClick={() => setIsCartOpen(true)}
-          className="fixed bottom-6 right-6 z-40 px-5 py-3 rounded-full shadow-lg bg-[#666fb8] text-white font-semibold flex items-center gap-3"
+          className={`fixed bottom-6 right-6 z-40 px-5 py-3 rounded-full shadow-lg ${colors.button} text-white font-semibold flex items-center gap-3`}
           aria-label="Open cart"
         >
           🛒 {t?.cart || (lang === "id" ? "Keranjang" : "Cart")} (
           {cartItemsCount})
         </button>
       )}
-
       {/* Item Detail Modal */}
       {selectedItem && (
         <ItemDetailModal
@@ -653,7 +652,6 @@ export default function PublicMenu() {
           onAdd={(item, qty, note) => addToCart(item, qty, note)}
         />
       )}
-
       {/* Order Type Modal */}
       {showOrderTypeModal && (
         <OrderTypeModal
@@ -662,7 +660,6 @@ export default function PublicMenu() {
           onClose={() => setShowOrderTypeModal(false)}
         />
       )}
-
       {/* Cart Panel */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex justify-end">
@@ -684,7 +681,7 @@ export default function PublicMenu() {
                     setIsCartOpen(false);
                     setShowOrderTypeModal(true);
                   }}
-                  className="px-3 py-1 rounded-lg bg-[#eaf0ff] text-[#666fb8] text-sm"
+                  className="px-3 py-1 rounded-lg bg-[#eaf0ff]  style={{ color: colors.primary }} text-sm"
                 >
                   {t?.chooseType || (lang === "id" ? "Tipe" : "Type")}
                 </button>
@@ -777,7 +774,7 @@ export default function PublicMenu() {
                         orderViaWhatsApp();
                       }
                     }}
-                    className="w-full py-3 rounded-lg bg-[#666fb8] text-white font-semibold"
+                    className={`${colors.button} text-white px-4 py-2 rounded-lg`}
                   >
                     {t?.orderNow ||
                       (lang === "id" ? "Pesan Sekarang" : "Order Now")}
@@ -792,7 +789,6 @@ export default function PublicMenu() {
           </div>
         </div>
       )}
-
       {/* Toast */}
       {toast && (
         <Toast
@@ -816,7 +812,11 @@ function capitalize(s) {
 // A tiny fallback user icon (keeps imports minimal in this file)
 function UserIconFallback() {
   return (
-    <div className="w-6 h-6 rounded-full bg-[#666fb8] text-white flex items-center justify-center text-xs font-bold">
+    <div
+      className={
+        "w-6 h-6 rounded-full bg-[ ${colors.button} text-white flex items-center justify-center text-xs font-bold"
+      }
+    >
       U
     </div>
   );

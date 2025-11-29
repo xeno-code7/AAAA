@@ -42,6 +42,8 @@ import Modal from "./Modal";
 import ItemForm from "./itemForm";
 import { MenuCard } from "./MenuCard";
 import QRCodeDisplay from "./QRCode";
+import { useTemplate } from "../contexts/TemplateContext";
+import TemplateSettings from "./TemplateSettings";
 
 // Stat Card Component
 function StatCard({ icon: Icon, label, value, trend, color }) {
@@ -59,7 +61,7 @@ function StatCard({ icon: Icon, label, value, trend, color }) {
           <Icon size={20} />
         </div>
         {trend && (
-          <span className="flex items-center text-xs text-[#666fb8] font-medium">
+          <span className="flex items-center text-xs  style={{ color: colors.primary }} font-medium">
             <TrendingUp size={12} className="mr-0.5" />
             {trend}
           </span>
@@ -121,7 +123,7 @@ function Sidebar({ isOpen, onClose, currentPage, onNavigate }) {
         {/* Header */}
         <div className="p-4 border-b flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#666fb8] to-[#333fa1] rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br  style={{ color: colors${colors.gradient}.primary }} rounded-xl flex items-center justify-center">
               <Store size={20} className="text-white" />
             </div>
             <div>
@@ -148,7 +150,7 @@ function Sidebar({ isOpen, onClose, currentPage, onNavigate }) {
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                 currentPage === item.id
-                  ? "bg-[#e6e8f7] text-[#666fb8]"
+                  ? "bg-[#e6e8f7]  style={{ color: colors.primary }}"
                   : "text-gray-600 hover:bg-gray-50"
               }`}
             >
@@ -165,7 +167,7 @@ function Sidebar({ isOpen, onClose, currentPage, onNavigate }) {
         <div className="absolute left-0 right-0 p-4 border-t bg-white">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <Users size={18} className="text-[#666fb8]" />
+              <Users size={18} className=" style={{ color: colors.primary }}" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">
@@ -246,7 +248,10 @@ function DashboardOverview({ items }) {
       {/* Top Items */}
       <div className="bg-white rounded-xl border p-4">
         <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <TrendingUp size={18} className="text-[#666fb8]" />
+          <TrendingUp
+            size={18}
+            className=" style={{ color: colors.primary }}"
+          />
           {lang === "id" ? "Menu Terpopuler" : "Popular Menu"}
         </h3>
         <div className="space-y-3">
@@ -282,7 +287,7 @@ function DashboardOverview({ items }) {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-[#666fb8]">
+                <p className="text-sm font-bold  style={{ color: colors.primary }}">
                   {item.views || 0}
                 </p>
                 <p className="text-xs text-gray-500">
@@ -305,6 +310,7 @@ function DashboardOverview({ items }) {
 // Settings Page
 function SettingsPage({ settings, onSave }) {
   const { t, lang, toggleLang } = useLanguage();
+  const { template, setTemplate } = useTemplate();
   const [form, setForm] = useState({
     storeName: settings.storeName || "",
     storeLocation: settings.storeLocation || "",
@@ -333,7 +339,6 @@ function SettingsPage({ settings, onSave }) {
               : "Manage your store information"}
           </p>
         </div>
-
         {/* Store Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -351,7 +356,6 @@ function SettingsPage({ settings, onSave }) {
             }
           />
         </div>
-
         {/* Store Location */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -369,7 +373,6 @@ function SettingsPage({ settings, onSave }) {
             }
           />
         </div>
-
         {/* Operating Hours */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -389,7 +392,6 @@ function SettingsPage({ settings, onSave }) {
             }
           />
         </div>
-
         {/* WhatsApp Number */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -410,7 +412,6 @@ function SettingsPage({ settings, onSave }) {
               : "Format: 628xxx (without + or 0)"}
           </p>
         </div>
-
         {/* Save Button */}
         <button
           onClick={handleSave}
@@ -423,7 +424,12 @@ function SettingsPage({ settings, onSave }) {
           {saved ? (lang === "id" ? "Tersimpan!" : "Saved!") : t.save}
         </button>
       </div>
-
+      {/* NEW: Template Settings */}
+      <TemplateSettings
+        currentTemplate={template}
+        onTemplateChange={setTemplate}
+        lang={lang}
+      />
       {/* Language Settings */}
       <div className="bg-white rounded-xl border shadow-sm p-6">
         <div className="text-center pb-4 border-b mb-4">
@@ -535,7 +541,10 @@ export function AdminDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="animate-spin text-[#666fb8]" size={40} />
+        <Loader2
+          className="animate-spin  style={{ color: colors.primary }}"
+          size={40}
+        />
       </div>
     );
   }
@@ -646,7 +655,7 @@ export function AdminDashboard() {
                   <p className="text-gray-500 mb-2">{t.noItems}</p>
                   <button
                     onClick={() => setModal("add")}
-                    className="text-[#666fb8] font-medium hover:underline"
+                    className=" style={{ color: colors.primary }} font-medium hover:underline"
                   >
                     {t.addFirstItem}
                   </button>

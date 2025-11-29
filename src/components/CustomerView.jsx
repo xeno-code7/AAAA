@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { MenuCardSimple } from "./MenuCard";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useTemplate } from "../contexts/TemplateContext";
+import { getTemplateColors } from "./TemplateSettings";
 
 const CATEGORIES = ["all", "food", "drink", "snack", "dessert", "other"];
 
@@ -184,7 +186,7 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#333fa1] to-[#000f89] text-white">
+      <div className="bg-gradient-to-r ${colors.gradient} text-white">
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
@@ -241,7 +243,7 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-medium transition-all ${
                   selectedCategory === cat
-                    ? "bg-white text-[#666fb8]"
+                    ? "bg-white  style={{ color: colors.primary }}"
                     : "bg-white/20 text-white hover:bg-white/30"
                 }`}
               >
@@ -296,7 +298,10 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
           >
             <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
               <h3 className="font-bold text-lg flex items-center gap-2">
-                <ShoppingCart size={20} className="text-[#666fb8]" />
+                <ShoppingCart
+                  size={20}
+                  className=" style={{ color: colors.primary }}"
+                />
                 {lang === "id" ? "Keranjang" : "Cart"} ({totalItems})
               </h3>
               <button
@@ -322,7 +327,7 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                       <h4 className="font-medium text-gray-900 text-sm truncate">
                         {item.name}
                       </h4>
-                      <p className="text-[#666fb8] font-bold text-sm">
+                      <p className=" style={{ color: colors.primary }} font-bold text-sm">
                         Rp {formatPrice(item.price)}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
@@ -427,7 +432,7 @@ export function CustomerView({ items, settings, onIncrementViews, onBack }) {
                 </div>
                 <button
                   onClick={() => setShowOrderForm(!showOrderForm)}
-                  className="text-xs text-[#666fb8] flex items-center gap-1"
+                  className="text-xs  style={{ color: colors.primary }} flex items-center gap-1"
                 >
                   {showOrderForm ? (
                     <ChevronDown size={14} />

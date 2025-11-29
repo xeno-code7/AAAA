@@ -175,7 +175,7 @@ export function UserProfile() {
       />
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#333fa1] to-[#000f89] text-white p-4">
+      <div className="bg-gradient-to-r ${colors.gradient} text-white p-4">
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => navigate("/")}
@@ -222,7 +222,10 @@ export function UserProfile() {
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <ShoppingBag size={20} className="text-[#666fb8]" />
+                <ShoppingBag
+                  size={20}
+                  className=" style={{ color: colors.primary }}"
+                />
               </div>
               <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
               <p className="text-xs text-gray-500">
@@ -421,7 +424,7 @@ export function UserProfile() {
                 <span>{order.items} item</span>
               </div>
               <div className="mt-2 pt-2 border-t">
-                <p className="font-bold text-[#666fb8]">
+                <p className="font-bold  style={{ color: colors.primary }}">
                   Rp {formatPrice(order.total)}
                 </p>
               </div>

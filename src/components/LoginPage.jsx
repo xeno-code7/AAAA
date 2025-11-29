@@ -94,7 +94,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#666fb8] to-[#333fa1] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br  style={{ color: colors${colors.gradient}.primary }} flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back to menu */}
         <button
@@ -108,7 +108,7 @@ export function LoginPage() {
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#333fa1] to-[#000f89] p-6 text-white text-center">
+          <div className="bg-gradient-to-r ${colors.gradient} p-6 text-white text-center">
             <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Store size={32} />
             </div>
@@ -122,7 +122,7 @@ export function LoginPage() {
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-3 text-sm font-medium transition-colors ${
                 isLogin
-                  ? "text-[#666fb8] border-b-2 border-[#666fb8]"
+                  ? " style={{ color: colors.primary }} border-b-2 border-[#666fb8]"
                   : "text-gray-500"
               }`}
             >
@@ -132,7 +132,7 @@ export function LoginPage() {
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-3 text-sm font-medium transition-colors ${
                 !isLogin
-                  ? "text-[#666fb8] border-b-2 border-[#666fb8]"
+                  ? " style={{ color: colors.primary }} border-b-2 border-[#666fb8]"
                   : "text-gray-500"
               }`}
             >
@@ -252,7 +252,7 @@ export function LoginPage() {
               <div
                 className={`p-3 rounded-lg text-sm ${
                   error.includes("berhasil") || error.includes("successful")
-                    ? "bg-[#e6e8f7] text-[#666fb8]"
+                    ? "bg-[#e6e8f7]  style={{ color: colors.primary }}"
                     : "bg-red-50 text-red-600"
                 }`}
               >
